@@ -39,11 +39,11 @@ input[type=text],input[type=date],input[type=number],select{font:inherit;font-si
 #color{text-transform:uppercase;font-family:var(--mono)}
 .chips{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
 @media (max-width:360px){.chips{grid-template-columns:repeat(3,1fr)}}
-.cc{font:inherit;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:5px 2px;display:grid;gap:0;justify-items:center;cursor:pointer;min-height:48px;touch-action:manipulation}
+.cc{font:inherit;border:1px solid rgba(128,128,128,.45);background:var(--c);color:var(--t);border-radius:8px;padding:5px 2px;display:grid;justify-items:center;cursor:pointer;min-height:50px;touch-action:manipulation;position:relative}
 .cc b{font-family:var(--mono);font-size:14px;font-weight:600;line-height:1.25}
-.cc small{font-size:10.5px;color:var(--muted);line-height:1.2;text-align:center;overflow-wrap:anywhere}
-.cc.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.cc.on small{color:var(--accent-ink);opacity:.85}
+.cc small{font-size:10.5px;opacity:.9;line-height:1.2;text-align:center;overflow-wrap:anywhere}
+.cc.on{outline:3px solid var(--accent);outline-offset:2px}
+.cc.on::after{content:"✓";position:absolute;top:-7px;right:-5px;width:18px;height:18px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:12px;font-weight:700;display:grid;place-items:center;line-height:1}
 input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .seg{display:flex;gap:6px}
 .seg label{flex:1;position:relative}
@@ -281,12 +281,15 @@ const PRODUCTS = [
   { name: "JG RC IS",      points: 11, side: false, lsl: 6.8 },
   { name: "JG RC OS 코치", points: 9,  side: true,  lsl: 6.8 },
 ];
+/* [코드, 이름, 실제 색]. 색은 현장 색상표 사진에서 눈으로 읽은 값이라 약간 다를 수 있습니다. 어긋나면 #색만 고치면 됩니다. */
 const COLORS = [
-  ["PH3","비크블랙"], ["UYH","우유니화이트"], ["FT7(무)","마테호른화이트"], ["SSS","세빌실버"],
-  ["NCM","마칼루그레이"], ["MPE(무)","마칼루그레이매트"], ["NRB","카프리블루"], ["HT7","카디프그린"],
-  ["SMZ(무)","모나쉬실버"], ["VET","비에나그린"], ["NAE","세이셸베이지"], ["DAL","자이푸르로즈"],
-  ["BCA","카시스"], ["MAB","벨라버건디"], ["CBA","코모블루"], ["LAG","타우포그레이"],
+  ["PH3","비크블랙","#202226"], ["UYH","우유니 화이트","#f0f0ee"], ["FT7(무)","마테호른 화이트","#edeff1"], ["SSS","세빌 실버","#c0bfc6"],
+  ["NCM","마칼루 그레이","#7a7584"], ["MPE(무)","마칼루 그레이 매트","#6e6975"], ["NRB","카디프 블루","#141b5c"], ["HT7","카디프 그린","#1f2b29"],
+  ["SMZ(무)","모나쉬 실버","#9f9aa5"], ["VET","바에나 그린","#5d6b3c"], ["NAE","세이셸 베이지","#bdb092"], ["DAL","자이푸르 로즈","#8b7b88"],
+  ["BCA","소노란 네이비","#25214d"], ["MAB","벨라 버건디","#6a1d25"], ["CBA","코모 블루","#7e86a6"], ["LAG","타우포 그레이","#4b4a6b"],
 ];
+/** 바탕색이 밝으면 검정 글자, 어두우면 흰 글자 */
+function inkOn(hex){ const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255; return (0.299*r + 0.587*g + 0.114*b) > 150 ? "#111" : "#fff"; }
 
 const STORE = "paq_records_v1", PSTORE = "paq_products_v1", FSTORE = "paq_form_v1", DSTORE = "paq_draft_v1";
 const MAX_POINTS = 30;
@@ -329,8 +332,8 @@ function onProductChange(){
 
 function renderColorHints(){
   const box = $("colorChips"); box.textContent = "";
-  COLORS.forEach(([code, name]) => {
-    const b = el("button", "cc"); b.type = "button"; b.dataset.code = code;
+  COLORS.forEach(([code, name, hex]) => {
+    const b = el("button", "cc"); b.type = "button"; b.dataset.code = code; b.style.setProperty("--c", hex); b.style.setProperty("--t", inkOn(hex));
     b.append(el("b", "", code), el("small", "", name));
     b.addEventListener("click", () => { $("color").value = code; markColor(); saveForm(); });
     box.append(b);
@@ -816,3 +819,4 @@ if(SHEET_URL){ resendAll(); window.addEventListener("online", resendAll); }
 </script>
 </body>
 </html>
+
