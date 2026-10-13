@@ -37,6 +37,13 @@ h2{font-size:13px;font-weight:600;letter-spacing:.06em;color:var(--muted);margin
 label.f,.f{display:grid;gap:4px;font-size:13px;color:var(--muted);min-width:0}
 input[type=text],input[type=date],input[type=number],select{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%;min-width:0;min-height:42px}
 #color{text-transform:uppercase;font-family:var(--mono)}
+.chips{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
+@media (max-width:360px){.chips{grid-template-columns:repeat(3,1fr)}}
+.cc{font:inherit;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:5px 2px;display:grid;gap:0;justify-items:center;cursor:pointer;min-height:48px;touch-action:manipulation}
+.cc b{font-family:var(--mono);font-size:14px;font-weight:600;line-height:1.25}
+.cc small{font-size:10.5px;color:var(--muted);line-height:1.2;text-align:center;overflow-wrap:anywhere}
+.cc.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.cc.on small{color:var(--accent-ink);opacity:.85}
 input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .seg{display:flex;gap:6px}
 .seg label{flex:1;position:relative}
@@ -156,7 +163,11 @@ input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid 
     <div class="fields">
       <label class="f wide">품명<select id="product"></select></label>
       <label class="f">측정일자<input type="date" id="date"></label>
-      <label class="f">칼라<input type="text" id="color" list="colorList" placeholder="예: NCM" autocomplete="off" autocapitalize="characters" maxlength="20"></label>
+      <div class="f wide">
+        <label class="f" for="color">칼라 (아래에서 고르거나 직접 입력)</label>
+        <input type="text" id="color" list="colorList" placeholder="예: NCM" autocomplete="off" autocapitalize="characters" maxlength="20">
+        <div class="chips" id="colorChips" role="group" aria-label="칼라 고르기"></div>
+      </div>
       <div class="f wide" id="sideBox" role="radiogroup" aria-label="위치">위치
         <div class="seg">
           <label><input type="radio" name="side" value="LH"><span>LH</span></label>
@@ -270,7 +281,12 @@ const PRODUCTS = [
   { name: "JG RC IS",      points: 11, side: false, lsl: 6.8 },
   { name: "JG RC OS 코치", points: 9,  side: true,  lsl: 6.8 },
 ];
-const COLOR_HINTS = ["NCM","DAL","VET","LAG","BCA","BC4","CDA","DH3","PH3","UYH","NAG","NAE","WAC","MAB","NRB"];
+const COLORS = [
+  ["PH3","비크블랙"], ["UYH","우유니화이트"], ["FT7(무)","마테호른화이트"], ["SSS","세빌실버"],
+  ["NCM","마칼루그레이"], ["MPE(무)","마칼루그레이매트"], ["NRB","카프리블루"], ["HT7","카디프그린"],
+  ["SMZ(무)","모나쉬실버"], ["VET","비에나그린"], ["NAE","세이셸베이지"], ["DAL","자이푸르로즈"],
+  ["BCA","카시스"], ["MAB","벨라버건디"], ["CBA","코모블루"], ["LAG","타우포그레이"],
+];
 
 const STORE = "paq_records_v1", PSTORE = "paq_products_v1", FSTORE = "paq_form_v1", DSTORE = "paq_draft_v1";
 const MAX_POINTS = 30;
@@ -312,10 +328,22 @@ function onProductChange(){
 }
 
 function renderColorHints(){
-  const seen = new Set(COLOR_HINTS);
-  records.forEach(r => r.color && seen.add(r.color));
+  const box = $("colorChips"); box.textContent = "";
+  COLORS.forEach(([code, name]) => {
+    const b = el("button", "cc"); b.type = "button"; b.dataset.code = code;
+    b.append(el("b", "", code), el("small", "", name));
+    b.addEventListener("click", () => { $("color").value = code; markColor(); saveForm(); });
+    box.append(b);
+  });
+  // 목록에 없는 칼라를 직접 쳐서 저장했던 적이 있으면 자동완성에만 보여 줌
+  const known = new Set(COLORS.map(c => c[0]));
   const dl = $("colorList"); dl.textContent = "";
-  [...seen].sort().forEach(c => { const o = document.createElement("option"); o.value = c; dl.append(o); });
+  [...new Set(records.map(r => r.color).filter(c => c && !known.has(c)))].sort().forEach(c => { const o = document.createElement("option"); o.value = c; dl.append(o); });
+  markColor();
+}
+function markColor(){
+  const v = $("color").value.trim().toUpperCase();
+  document.querySelectorAll("#colorChips .cc").forEach(b => { const on = b.dataset.code.toUpperCase() === v; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); });
 }
 
 /* 품명 관리 (이 휴대폰에만) */
@@ -762,6 +790,7 @@ $("draftResume").addEventListener("click", openEntry);
 $("draftDrop").addEventListener("click", () => { discardDraft(); toast("작성 중이던 값을 버렸습니다"); });
 $("product").addEventListener("change", onProductChange);
 ["color","note","person"].forEach(id => $(id).addEventListener("input", saveForm));
+$("color").addEventListener("input", markColor);
 document.querySelectorAll('input[name=side]').forEach(r => r.addEventListener("change", saveForm));
 $("pmBtn").addEventListener("click", openPm);
 $("pmAdd").addEventListener("click", () => { pmEdit.push({ name: "", points: 10, side: false, lsl: 6.8 }); renderPm(); });
