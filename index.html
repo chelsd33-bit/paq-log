@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PAQ 측정 기록</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: 입력 정보 카드 → 전체화면 입력(사진 + point 칩 + 숫자판) → 기기 내 기록과 엑셀/시트 */
+:root{
+  --bg:#f3f4f2; --surface:#ffffff; --ink:#1b2124; --muted:#5d686d; --line:#d9dedc;
+  --accent:#1f5f74; --accent-ink:#ffffff; --accent-soft:#dcecf1;
+  --fail:#c8321f; --fail-soft:#fbe5e1; --pass:#2c7a4b; --pass-soft:#e2f2e8; --warn:#9a6a00; --warn-soft:#fbf0d2;
+  --key:#e6e9e7; --photo:#0f1315;
+  --sans:"IBM Plex Sans KR",system-ui,-apple-system,"Malgun Gothic",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#121618; --surface:#1b2124; --ink:#e7ecec; --muted:#9aa6aa; --line:#2e373a;
+  --accent:#6fb3c9; --accent-ink:#0d1a1f; --accent-soft:#1d3640;
+  --fail:#ff7b67; --fail-soft:#3b1e19; --pass:#6fcf95; --pass-soft:#173023; --warn:#e6b84a; --warn-soft:#352a10;
+  --key:#262e31; --photo:#000;
+  color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5}
+body.lock{overflow:hidden}
+.wrap{max-width:720px;margin:0 auto;padding-inline:16px;padding-block:calc(20px + env(safe-area-inset-top,0px)) calc(48px + env(safe-area-inset-bottom,0px));display:grid;gap:20px}
+header{display:grid;gap:4px}
+h1{font-size:22px;font-weight:700;margin:0}
+.sub{color:var(--muted);font-size:13px;margin:0}
+h2{font-size:13px;font-weight:600;letter-spacing:.06em;color:var(--muted);margin:0 0 10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.fields .wide{grid-column:1/-1}
+@media (max-width:420px){.fields{grid-template-columns:1fr}}
+label.f,.f{display:grid;gap:4px;font-size:13px;color:var(--muted);min-width:0}
+input[type=text],input[type=date],input[type=number],select{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%;min-width:0;min-height:42px}
+#color{text-transform:uppercase;font-family:var(--mono)}
+input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:flex;gap:6px}
+.seg label{flex:1;position:relative}
+.seg input{position:absolute;opacity:0;inset:0}
+.seg span{display:block;text-align:center;padding:9px 0;border:1px solid var(--line);border-radius:6px;font-weight:600;color:var(--ink);background:var(--bg);font-family:var(--mono)}
+.seg input:checked + span{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.seg input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+.pinfo{font-size:13px;color:var(--muted);margin:0 0 12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.pinfo b{color:var(--ink);font-weight:600}
+.shoot{display:flex;align-items:center;justify-content:center;gap:10px;background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:16px;font-size:17px;font-weight:600;cursor:pointer;position:relative}
+.shoot:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.shoot.off{opacity:.55;pointer-events:none}
+.shoot input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.shoot svg{width:22px;height:22px}
+.row2{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.linkbtn{font:inherit;font-size:14px;background:none;border:0;color:var(--accent);text-decoration:underline;cursor:pointer;padding:4px 0;position:relative}
+.linkbtn input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.hint{font-size:13px;color:var(--muted);margin:10px 0 0}
+.status{display:flex;align-items:center;gap:10px;font-size:14px;margin-top:12px}
+.spin{width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite;flex:none}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+.err{background:var(--fail-soft);color:var(--fail);border-radius:6px;padding:10px 12px;font-size:14px;margin-top:12px}
+.pending{background:var(--warn-soft);color:var(--ink);border:1px solid var(--warn);border-radius:8px;padding:12px;margin-top:12px;display:grid;gap:10px}
+.pending p{margin:0;font-size:14px}
+.pending b{color:var(--warn)}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.btn{font:inherit;font-weight:600;border-radius:8px;padding:10px 16px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.small{padding:6px 10px;font-size:13px;font-weight:500}
+.btn.danger{color:var(--fail);border-color:var(--fail)}
+.pill{display:inline-block;font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;white-space:nowrap}
+.pill.fail{background:var(--fail-soft);color:var(--fail)}
+.pill.pass{background:var(--pass-soft);color:var(--pass)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+
+/* 품명 관리 */
+.pm-row{display:grid;grid-template-columns:minmax(0,1fr) 70px 70px 64px auto;gap:6px;align-items:end;padding:8px 0;border-top:1px solid var(--line)}
+.pm-row:first-of-type{border-top:0}
+.pm-row .f{font-size:12px}
+.pm-row input[type=checkbox]{width:22px;height:22px;margin:10px auto}
+@media (max-width:480px){.pm-row{grid-template-columns:1fr 1fr 1fr}.pm-row .pm-name{grid-column:1/-1}.pm-row .pm-del{grid-column:3;justify-self:end}}
+
+/* 기록 */
+.histhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.histhead h2{margin:0}
+.histbtns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.histbtns select{width:auto;min-height:34px;padding:4px 8px;font-size:14px}
+.empty{color:var(--muted);font-size:14px;padding:12px 0;margin:0}
+.rec{border-top:1px solid var(--line);padding:12px 0;display:grid;gap:8px}
+.rec:first-child{border-top:0;padding-top:0}
+.rec-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.rec-name{font-weight:600;min-width:0;overflow-wrap:anywhere}
+.rec-name small{font-family:var(--mono);font-weight:500;color:var(--muted);margin-left:6px}
+.vals{display:flex;flex-wrap:wrap;gap:4px}
+.v{font-family:var(--mono);font-size:13px;border-radius:5px;padding:2px 6px;background:var(--bg);font-variant-numeric:tabular-nums}
+.v i{font-style:normal;color:var(--muted);font-size:11px;margin-right:5px;padding-right:5px;border-right:1px solid var(--line)}
+.v.fail{background:var(--fail-soft);color:var(--fail);font-weight:600}
+.v.fail i{color:inherit}
+.rec-note{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.rec-act{display:flex;gap:8px;justify-content:flex-end;align-items:center;font-size:13px;flex-wrap:wrap}
+.sync{font-size:12px;font-weight:600;margin-right:auto}
+.sync.sent{color:var(--pass)}
+.sync.pending,.sync.sending{color:var(--muted)}
+.sync.failed{color:var(--fail)}
+
+/* 전체화면 입력 */
+.ov{position:fixed;inset:0;z-index:10;background:var(--bg);display:flex;flex-direction:column;height:100dvh;padding-top:env(safe-area-inset-top,0px)}
+.ov-top{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--line)}
+.ov-title{flex:1;min-width:0;display:grid;line-height:1.3}
+.ov-title strong{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ov-title span{font-size:12px;color:var(--muted);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph{position:relative;flex:1 1 0;min-height:120px;background:var(--photo)}
+.ph-scroll{position:absolute;inset:0;overflow:auto;touch-action:manipulation;overscroll-behavior:contain}
+.ph-scroll img{display:block;width:100%;height:100%;object-fit:contain;user-select:none;-webkit-user-select:none}
+.ph-tools{position:absolute;right:8px;bottom:8px;display:flex;gap:6px}
+.ph-tools button{width:40px;height:40px;border-radius:8px;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:20px;cursor:pointer;display:grid;place-items:center}
+.ph-tools button svg{width:20px;height:20px}
+.ph-zoom{position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;border-radius:6px;padding:4px 8px;font-family:var(--mono)}
+.ov.nophoto .ph{display:none}
+.ov.nophoto .pts{flex:1 1 auto;max-height:none;align-content:start}
+.pts{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:6px;padding:10px 12px;max-height:30vh;overflow-y:auto;background:var(--surface);border-top:1px solid var(--line)}
+.pt{font:inherit;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:4px 6px;display:grid;text-align:left;cursor:pointer;min-height:48px}
+.pt small{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.pt b{font-family:var(--mono);font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2}
+.pt.empty b{color:var(--muted);font-weight:400}
+.pt.fail{background:var(--fail-soft);border-color:var(--fail);color:var(--fail)}
+.pt.fail small{color:var(--fail)}
+.pt.cur{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent);background:var(--accent-soft)}
+.pt.cur.fail{background:var(--fail-soft)}
+.pt.typing b{color:var(--accent)}
+.ov-stat{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 12px;font-size:13px;color:var(--muted);background:var(--surface)}
+.ov-stat .done{color:var(--pass);font-weight:600}
+.ov-confirm{margin:0 12px 8px;background:var(--warn-soft);border:1px solid var(--warn);border-radius:8px;padding:10px;display:grid;gap:8px;font-size:14px}
+.pad{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:8px 12px calc(10px + env(safe-area-inset-bottom,0px));background:var(--surface);border-top:1px solid var(--line)}
+.pad button{font:inherit;font-size:24px;font-weight:600;font-family:var(--mono);height:54px;border-radius:8px;border:0;background:var(--key);color:var(--ink);cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.pad button:active{filter:brightness(.88)}
+.pad button.fn{font-family:var(--sans);font-size:15px;background:var(--bg);border:1px solid var(--line)}
+.pad button.go{font-family:var(--sans);font-size:16px;background:var(--accent);color:var(--accent-ink)}
+.pad button.go.ready{box-shadow:0 0 0 3px var(--accent-soft)}
+@media (max-height:640px){.pad button{height:46px}.pts{max-height:26vh}}
+
+.toast{position:fixed;z-index:20;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:14px;max-width:calc(100% - 32px)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>PAQ 측정 기록</h1>
+    <p class="sub">제품에 적힌 PAQ 값을 사진으로 찍어 띄워 두고, 숫자판으로 point별로 입력합니다. 기준 미만 값은 바로 빨갛게 표시됩니다.</p>
+  </header>
+
+  <section class="card">
+    <h2>새 측정</h2>
+    <div class="fields">
+      <label class="f wide">품명<select id="product"></select></label>
+      <label class="f">측정일자<input type="date" id="date"></label>
+      <label class="f">칼라<input type="text" id="color" list="colorList" placeholder="예: NCM" autocomplete="off" autocapitalize="characters" maxlength="20"></label>
+      <div class="f wide" id="sideBox" role="radiogroup" aria-label="위치">위치
+        <div class="seg">
+          <label><input type="radio" name="side" value="LH"><span>LH</span></label>
+          <label><input type="radio" name="side" value="RH"><span>RH</span></label>
+        </div>
+      </div>
+      <label class="f">비고<input type="text" id="note" placeholder="예: 스윙, 코치 (선택)" autocomplete="off" maxlength="60"></label>
+      <label class="f">측정자<input type="text" id="person" placeholder="선택" autocomplete="off" maxlength="40"></label>
+    </div>
+    <datalist id="colorList"></datalist>
+    <p class="pinfo"><span id="pinfo"></span><button class="linkbtn" id="pmBtn" type="button">품명 추가·수정</button></p>
+
+    <label class="shoot" id="shootBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+      <span>제품 사진 찍고 입력</span>
+      <input type="file" id="photo" accept="image/*" capture="environment" aria-label="제품 사진 찍고 입력">
+    </label>
+    <div class="row2">
+      <span class="linkbtn">앨범에서 사진 고르기<input type="file" id="album" accept="image/*" aria-label="앨범에서 사진 고르기"></span>
+      <button class="linkbtn" id="manualBtn" type="button">사진 없이 입력</button>
+    </div>
+    <div class="status" id="busy" hidden><div class="spin"></div><span>사진을 준비하는 중…</span></div>
+    <div class="pending" id="draftBox" role="status" hidden>
+      <p><b>작성 중인 측정이 있습니다.</b> <span id="draftText"></span></p>
+      <div class="actions">
+        <button class="btn primary small" id="draftResume" type="button">이어서 입력</button>
+        <button class="btn small" id="draftDrop" type="button">버리기</button>
+      </div>
+    </div>
+    <div class="pending" id="pendingBox" role="alert" hidden>
+      <p><b>저장하지 않은 측정이 있습니다.</b> 새로 시작하면 지금까지 입력한 값이 사라집니다.</p>
+      <div class="actions">
+        <button class="btn primary small" id="pendResume" type="button">이어서 입력</button>
+        <button class="btn small" id="pendDrop" type="button">버리고 새로 시작</button>
+        <button class="btn small" id="pendCancel" type="button">취소</button>
+      </div>
+    </div>
+    <div class="err" id="err" hidden></div>
+  </section>
+
+  <section class="card" id="pmCard" hidden>
+    <h2>품명 추가·수정</h2>
+    <p class="hint" style="margin:0 0 10px">이 휴대폰에만 적용됩니다. 모든 사람에게 똑같이 쓰려면 관리자에게 앱 코드의 품명 목록 수정을 요청하세요.</p>
+    <div id="pmList"></div>
+    <div class="actions" style="margin-top:12px">
+      <button class="btn small" id="pmAdd" type="button">+ 품명 추가</button>
+      <span style="flex:1"></span>
+      <button class="btn small" id="pmCancel" type="button">취소</button>
+      <button class="btn small primary" id="pmSave" type="button">저장</button>
+    </div>
+    <div class="err" id="pmErr" hidden></div>
+  </section>
+
+  <section class="card">
+    <div class="histhead">
+      <h2>측정 기록 (이 휴대폰)</h2>
+      <div class="histbtns" id="histBtns" hidden>
+        <select id="filter" aria-label="품명으로 거르기"></select>
+        <button class="btn small primary" id="shareBtn" type="button">엑셀 공유</button>
+        <button class="btn small" id="xlsxBtn" type="button">엑셀 내려받기</button>
+      </div>
+    </div>
+    <div id="hist"></div>
+  </section>
+</div>
+
+<div class="ov" id="entry" role="dialog" aria-modal="true" aria-labelledby="ovProduct" hidden>
+  <div class="ov-top">
+    <div class="ov-title"><strong id="ovProduct"></strong><span id="ovMeta"></span></div>
+    <button class="btn small" id="ovClose" type="button">닫기</button>
+  </div>
+  <div class="ph">
+    <div class="ph-scroll" id="phScroll"><img id="phImg" alt="제품에 적힌 값 사진" draggable="false"></div>
+    <span class="ph-zoom" id="phZoom">1×</span>
+    <div class="ph-tools">
+      <button type="button" id="zOut" aria-label="축소">−</button>
+      <button type="button" id="zIn" aria-label="확대">+</button>
+      <button type="button" id="rot" aria-label="사진 돌리기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
+    </div>
+  </div>
+  <div class="pts" id="pts"></div>
+  <div class="ov-stat" id="ovStat" aria-live="polite"></div>
+  <div class="ov-confirm" id="ovConfirm" role="alert" hidden>
+    <span id="ovConfirmText"></span>
+    <div class="actions">
+      <button class="btn small primary" id="ovSaveAnyway" type="button">그래도 저장</button>
+      <button class="btn small" id="ovKeep" type="button">계속 입력</button>
+    </div>
+  </div>
+  <div class="pad" id="pad">
+    <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button><button type="button" class="fn" data-k="back" aria-label="지우기">⌫</button>
+    <button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button><button type="button" class="fn" data-k="prev">◀ 이전</button>
+    <button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button><button type="button" class="fn" data-k="next">다음 ▶</button>
+    <button type="button" data-k=".">.</button><button type="button" data-k="0">0</button><button type="button" class="fn" data-k="clear">비우기</button><button type="button" class="go" data-k="save" id="saveKey">저장</button>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* ===== 관리자 설정 =====
+   SHEET_URL: 구글 시트의 Apps Script를 "웹 앱"으로 배포하고 받은 주소 (…/exec). 비워 두면 시트 전송을 쓰지 않습니다.
+   SHEET_KEY: 시트 코드의 KEY와 같은 값. 비워 두면 검사하지 않습니다.
+   PRODUCTS: 품명, point 개수, 위치(LH/RH) 구분 여부, 규격하한치(LSL). 여기를 고치면 모든 사람에게 적용됩니다. */
+const SHEET_URL = "";
+const SHEET_KEY = "";
+const TEAM = "베젤반";
+const PRODUCTS = [
+  { name: "JG H/L LENS",   points: 14, side: false, lsl: 6.8 },
+  { name: "JG S/REP",      points: 5,  side: true,  lsl: 6.8 },
+  { name: "JG RC IS",      points: 11, side: false, lsl: 6.8 },
+  { name: "JG RC OS 코치", points: 9,  side: true,  lsl: 6.8 },
+];
+const COLOR_HINTS = ["NCM","DAL","VET","LAG","BCA","BC4","CDA","DH3","PH3","UYH","NAG","NAE","WAC","MAB","NRB"];
+
+const STORE = "paq_records_v1", PSTORE = "paq_products_v1", FSTORE = "paq_form_v1", DSTORE = "paq_draft_v1";
+const MAX_POINTS = 30;
+const $ = id => document.getElementById(id);
+let products = [], records = [], draft = null, cur = 0, buf = "", zoom = 1, confirmShown = false;
+
+function load(k, d){ try{ const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); }catch(e){ return d; } }
+function persist(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } }
+function drop(k){ try{ localStorage.removeItem(k); }catch(e){} }
+function today(){ const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
+function md(s){ const p = String(s || "").split("-"); return p.length === 3 ? Number(p[1]) + "/" + Number(p[2]) : s; }
+function f1(v){ return v === null || v === undefined ? "" : Number(v).toFixed(1); }
+function isFail(v, lsl){ return v !== null && v !== undefined && v < lsl - 1e-9; }
+function toast(msg){ const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 2600); }
+function showErr(msg){ $("err").textContent = msg; $("err").hidden = !msg; }
+function el(tag, cls, text){ const e = document.createElement(tag); if(cls) e.className = cls; if(text !== undefined) e.textContent = text; return e; }
+
+/* ---------- 품명 ---------- */
+
+function prod(name){ const n = name === undefined ? $("product").value : name; return products.find(p => p.name === n) || products[0]; }
+function sideVal(){ const r = document.querySelector('input[name=side]:checked'); return r ? r.value : ""; }
+
+function renderProducts(){
+  const sel = $("product"), keep = sel.value;
+  sel.textContent = "";
+  products.forEach(p => { const o = el("option", "", p.name); o.value = p.name; sel.append(o); });
+  if(products.some(p => p.name === keep)) sel.value = keep;
+  onProductChange();
+  renderFilter();
+}
+
+function onProductChange(){
+  const p = prod();
+  $("sideBox").hidden = !p.side;
+  $("pinfo").innerHTML = "";
+  const b1 = el("b", "", "point " + p.points + "개"), b2 = el("b", "", p.lsl + " 이상");
+  $("pinfo").append(b1, " · 기준 ", b2);
+  saveForm();
+}
+
+function renderColorHints(){
+  const seen = new Set(COLOR_HINTS);
+  records.forEach(r => r.color && seen.add(r.color));
+  const dl = $("colorList"); dl.textContent = "";
+  [...seen].sort().forEach(c => { const o = document.createElement("option"); o.value = c; dl.append(o); });
+}
+
+/* 품명 관리 (이 휴대폰에만) */
+let pmEdit = [];
+function openPm(){ pmEdit = products.map(p => ({ ...p })); renderPm(); $("pmCard").hidden = false; $("pmErr").hidden = true; $("pmCard").scrollIntoView({ behavior: "smooth", block: "start" }); }
+function renderPm(){
+  const box = $("pmList"); box.textContent = "";
+  pmEdit.forEach((p, i) => {
+    const row = el("div", "pm-row");
+    const mk = (label, cls, input) => { const l = el("label", "f " + (cls || ""), label); l.append(input); return l; };
+    const nm = el("input"); nm.type = "text"; nm.value = p.name; nm.maxLength = 40; nm.addEventListener("input", () => p.name = nm.value);
+    const pt = el("input"); pt.type = "number"; pt.min = 1; pt.max = MAX_POINTS; pt.inputMode = "numeric"; pt.value = p.points; pt.addEventListener("input", () => p.points = Number(pt.value));
+    const ls = el("input"); ls.type = "number"; ls.step = "0.1"; ls.inputMode = "decimal"; ls.value = p.lsl; ls.addEventListener("input", () => p.lsl = Number(ls.value));
+    const sd = el("input"); sd.type = "checkbox"; sd.checked = !!p.side; sd.addEventListener("change", () => p.side = sd.checked);
+    const del = el("button", "btn small danger pm-del", "삭제"); del.type = "button";
+    del.addEventListener("click", () => { pmEdit.splice(i, 1); renderPm(); });
+    row.append(mk("품명", "pm-name", nm), mk("point 수", "", pt), mk("하한(LSL)", "", ls), mk("LH/RH", "", sd), del);
+    box.append(row);
+  });
+}
+function savePm(){
+  const err = m => { $("pmErr").textContent = m; $("pmErr").hidden = false; };
+  const list = pmEdit.map(p => ({ name: String(p.name || "").trim(), points: Math.round(Number(p.points)), side: !!p.side, lsl: Number(p.lsl) }));
+  if(!list.length) return err("품명이 하나 이상 있어야 합니다.");
+  if(list.some(p => !p.name)) return err("비어 있는 품명이 있습니다.");
+  if(new Set(list.map(p => p.name)).size !== list.length) return err("같은 품명이 두 번 있습니다.");
+  if(list.some(p => !(p.points >= 1 && p.points <= MAX_POINTS))) return err("point 수는 1~" + MAX_POINTS + " 사이로 넣어 주세요.");
+  if(list.some(p => !Number.isFinite(p.lsl))) return err("하한(LSL)에 숫자를 넣어 주세요.");
+  products = list; persist(PSTORE, products);
+  $("pmCard").hidden = true; renderProducts(); toast("품명을 저장했습니다");
+}
+
+/* ---------- 입력 정보 ---------- */
+
+let formReady = false;
+function saveForm(){
+  if(!formReady) return;
+  persist(FSTORE, { product: $("product").value, color: $("color").value, side: sideVal(), note: $("note").value, person: $("person").value });
+}
+function restoreForm(){
+  const f = load(FSTORE, {}) || {};
+  if(products.some(p => p.name === f.product)) $("product").value = f.product;
+  $("color").value = f.color || ""; $("note").value = f.note || ""; $("person").value = f.person || "";
+  document.querySelectorAll('input[name=side]').forEach(r => r.checked = r.value === f.side);
+  $("date").value = today();
+}
+function meta(){
+  const p = prod();
+  return { product: p.name, lsl: p.lsl, date: $("date").value, color: $("color").value.trim().toUpperCase(),
+    side: p.side ? sideVal() : "", note: $("note").value.trim(), person: $("person").value.trim() };
+}
+function checkMeta(){
+  const m = meta(), p = prod();
+  if(!m.date) return "측정일자를 넣어 주세요.";
+  if(!m.color) return "칼라를 넣어 주세요.";
+  if(p.side && !m.side) return "위치(LH/RH)를 골라 주세요.";
+  return "";
+}
+
+/* ---------- 작성 중 측정 ---------- */
+
+function hasValues(){ return !!draft && draft.values.some(v => v !== null); }
+function saveDraft(){ if(draft) persist(DSTORE, { product: draft.product, values: draft.values }); }
+function newDraft(img){
+  const p = prod();
+  if(draft && draft.img) URL.revokeObjectURL(draft.img);
+  draft = { product: p.name, values: Array(p.points).fill(null), img: img || null };
+  saveDraft();
+}
+function discardDraft(){
+  if(draft && draft.img) URL.revokeObjectURL(draft.img);
+  draft = null; drop(DSTORE); renderDraftBox();
+}
+function renderDraftBox(){
+  const show = hasValues() && $("entry").hidden;
+  $("draftBox").hidden = !show;
+  if(show){ const n = draft.values.filter(v => v !== null).length; $("draftText").textContent = draft.product + " · " + n + "/" + draft.values.length + " 입력"; }
+}
+
+/* ---------- 사진 ---------- */
+
+function loadImage(src){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("이 사진 형식은 열 수 없습니다. 다시 찍어 주세요."));
+    img.src = src;
+  });
+}
+function canvasToUrl(c){
+  return new Promise(res => c.toBlob(b => res(b ? URL.createObjectURL(b) : c.toDataURL("image/jpeg", 0.85)), "image/jpeg", 0.85));
+}
+/** 메모리를 아끼려고 긴 변 2000px로 줄여서 띄움 */
+async function preparePhoto(file){
+  const src = URL.createObjectURL(file);
+  try{
+    const img = await loadImage(src);
+    const s = Math.min(1, 2000 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement("canvas"); c.width = Math.round(img.naturalWidth*s); c.height = Math.round(img.naturalHeight*s);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    return await canvasToUrl(c);
+  } finally { URL.revokeObjectURL(src); }
+}
+async function rotatePhoto(){
+  if(!draft || !draft.img) return;
+  const img = await loadImage(draft.img);
+  const c = document.createElement("canvas"); c.width = img.naturalHeight; c.height = img.naturalWidth;
+  const g = c.getContext("2d"); g.translate(c.width, 0); g.rotate(Math.PI/2); g.drawImage(img, 0, 0);
+  const url = await canvasToUrl(c);
+  URL.revokeObjectURL(draft.img); draft.img = url; $("phImg").src = url; setZoom(1);
+}
+async function onPhoto(file){
+  showErr(""); $("busy").hidden = false; $("shootBtn").classList.add("off");
+  try{ const url = await preparePhoto(file); newDraft(url); openEntry(); }
+  catch(e){ showErr(e && e.message ? e.message : "사진을 열지 못했습니다. 다시 찍어 주세요."); }
+  finally{ $("busy").hidden = true; $("shootBtn").classList.remove("off"); $("photo").value = ""; $("album").value = ""; }
+}
+
+/* 확대: 버튼 또는 두 번 탭. 확대한 뒤에는 손가락으로 밀어서 이동 */
+function setZoom(z, cx, cy){
+  const sc = $("phScroll"), img = $("phImg");
+  z = Math.max(1, Math.min(5, z));
+  const W = sc.clientWidth, H = sc.clientHeight;
+  if(cx === undefined){ cx = W/2; cy = H/2; }
+  const fx = (sc.scrollLeft + cx) / (W*zoom), fy = (sc.scrollTop + cy) / (H*zoom);
+  zoom = z;
+  img.style.width = (W*z) + "px"; img.style.height = (H*z) + "px";
+  if(z === 1){ img.style.width = "100%"; img.style.height = "100%"; }
+  sc.scrollLeft = fx*W*z - cx; sc.scrollTop = fy*H*z - cy;
+  $("phZoom").textContent = (Math.round(z*10)/10) + "×";
+}
+let lastTap = { t: 0, x: 0, y: 0 };
+$("phScroll").addEventListener("pointerup", e => {
+  const r = $("phScroll").getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, now = Date.now();
+  if(now - lastTap.t < 320 && Math.abs(x - lastTap.x) < 30 && Math.abs(y - lastTap.y) < 30){ setZoom(zoom > 1 ? 1 : 2.5, x, y); lastTap.t = 0; }
+  else lastTap = { t: now, x, y };
+});
+$("zIn").addEventListener("click", () => setZoom(zoom * 1.5));
+$("zOut").addEventListener("click", () => setZoom(zoom / 1.5));
+$("rot").addEventListener("click", rotatePhoto);
+
+/* ---------- 전체화면 입력 ---------- */
+
+function openEntry(){
+  const p = prod(draft.product);
+  $("product").value = p.name; onProductChange();
+  if(draft.values.length !== p.points){ draft.values = Array.from({ length: p.points }, (_, i) => draft.values[i] ?? null); saveDraft(); }
+  const m = meta();
+  $("ovProduct").textContent = p.name;
+  $("ovMeta").textContent = [md(m.date), m.color, m.side, m.note].filter(Boolean).join(" · ") + "  |  기준 " + p.lsl + " 이상";
+  $("entry").classList.toggle("nophoto", !draft.img);
+  if(draft.img) $("phImg").src = draft.img; else $("phImg").removeAttribute("src");
+  const first = draft.values.findIndex(v => v === null);
+  cur = first < 0 ? draft.values.length : first; buf = ""; confirmShown = false; $("ovConfirm").hidden = true;
+  $("entry").hidden = false; document.body.classList.add("lock");
+  $("pendingBox").hidden = true; $("draftBox").hidden = true;
+  zoom = 1; requestAnimationFrame(() => setZoom(1));
+  renderEntry();
+}
+function closeEntry(){
+  $("entry").hidden = true; document.body.classList.remove("lock");
+  if(!hasValues()) discardDraft();
+  renderDraftBox();
+}
+
+function renderEntry(){
+  const p = prod(draft.product), n = draft.values.length, box = $("pts");
+  box.textContent = "";
+  draft.values.forEach((v, i) => {
+    const b = el("button", "pt"); b.type = "button";
+    const typing = i === cur && buf;
+    let shown = typing ? (buf.includes(".") || buf[0] === "1" ? buf : buf + ".") : (v === null ? "–" : f1(v));
+    if(i === cur) b.classList.add("cur");
+    if(typing) b.classList.add("typing");
+    else if(v === null) b.classList.add("empty");
+    else if(isFail(v, p.lsl)) b.classList.add("fail");
+    b.setAttribute("aria-label", "point " + (i+1) + " " + (v === null ? "비어 있음" : f1(v)));
+    b.append(el("small", "", "point." + (i+1)), el("b", "", shown));
+    b.addEventListener("click", () => { commitBuf(false); cur = i; buf = ""; renderEntry(); });
+    box.append(b);
+  });
+  const curEl = box.children[cur]; if(curEl) curEl.scrollIntoView({ block: "nearest" });
+  const filled = draft.values.filter(v => v !== null).length;
+  const fails = draft.values.map((v, i) => isFail(v, p.lsl) ? "point." + (i+1) : null).filter(Boolean);
+  const st = $("ovStat"); st.textContent = "";
+  st.append(el("span", "", "입력 " + filled + "/" + n));
+  if(fails.length) st.append(el("span", "pill fail", "기준 미만 " + fails.length + "개: " + fails.join(", ")));
+  if(filled === n && !fails.length) st.append(el("span", "pill pass", "모두 " + p.lsl + " 이상"));
+  if(cur >= n) st.append(el("span", "done", filled === n ? "모두 입력했습니다. 저장을 누르세요." : "끝까지 왔습니다. 빈 칸을 눌러 채우거나 저장하세요."));
+  else st.append(el("span", "", "· 7 4 를 누르면 7.4로 들어갑니다"));
+  $("saveKey").classList.toggle("ready", filled === n);
+}
+
+function nextEmpty(from){
+  for(let i = from; i < draft.values.length; i++) if(draft.values[i] === null) return i;
+  return draft.values.length;
+}
+function commitVal(v){
+  draft.values[cur] = Math.round(v*10)/10; buf = "";
+  cur = nextEmpty(cur + 1);
+  confirmShown = false; $("ovConfirm").hidden = true;
+}
+/* 소수 한 자리 고정: 두 자리(7,4)면 7.4로 자동 확정. 1로 시작하면 10.x로 보고 세 자리를 기다림 */
+function tryCommit(){
+  if(buf.includes(".")){ const [a, b] = buf.split("."); if(b.length >= 1) commitVal(Number((a || "0") + "." + b[0])); }
+  else if(buf.length === 2 && buf[0] !== "1") commitVal(Number(buf[0] + "." + buf[1]));
+  else if(buf.length === 3) commitVal(Number(buf.slice(0,2) + "." + buf[2]));
+}
+/** 덜 입력된 값(예: "7", "7.")은 7.0으로 확정 */
+function commitBuf(advance = true){
+  if(!buf) return;
+  const n = Number(buf.replace(/\.$/, ""));
+  if(Number.isFinite(n)){
+    if(advance) commitVal(n); else { draft.values[cur] = Math.round(n*10)/10; buf = ""; }
+  } else buf = "";
+}
+
+function press(k){
+  if(!draft) return;
+  const n = draft.values.length;
+  if(/^\d$/.test(k)){ if(cur >= n) return; buf += k; tryCommit(); }
+  else if(k === "."){ if(cur >= n) return; if(!buf.includes(".")) buf = (buf || "0") + "."; }
+  else if(k === "back"){
+    if(buf) buf = buf.slice(0, -1);
+    else if(cur < n && draft.values[cur] !== null) draft.values[cur] = null;
+    else if(cur > 0){ cur--; draft.values[cur] = null; }
+  }
+  else if(k === "prev"){ commitBuf(false); if(cur > 0) cur--; }
+  else if(k === "next"){ commitBuf(false); if(cur < n) cur++; }
+  else if(k === "clear"){ buf = ""; if(cur < n) draft.values[cur] = null; }
+  else if(k === "save"){ commitBuf(false); saveDraft(); renderEntry(); trySave(); return; }
+  saveDraft(); renderEntry();
+}
+$("pad").addEventListener("click", e => { const b = e.target.closest("button[data-k]"); if(b) press(b.dataset.k); });
+document.addEventListener("keydown", e => {
+  if($("entry").hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+  const map = { Backspace: "back", Enter: "next", ArrowRight: "next", ArrowLeft: "prev", Tab: "next", Delete: "clear", ".": ".", ",": "." };
+  const k = /^\d$/.test(e.key) ? e.key : map[e.key];
+  if(k){ e.preventDefault(); press(k); }
+  else if(e.key === "Escape") closeEntry();
+});
+
+function trySave(){
+  const missing = draft.values.map((v, i) => v === null ? i+1 : 0).filter(Boolean);
+  if(missing.length === draft.values.length){ toast("입력한 값이 없습니다"); return; }
+  if(missing.length && !confirmShown){
+    confirmShown = true;
+    $("ovConfirmText").textContent = "point " + missing.join(", ") + " 이(가) 비어 있습니다. 비운 채로 저장할까요?";
+    $("ovConfirm").hidden = false; return;
+  }
+  doSave();
+}
+
+function doSave(){
+  const e = checkMeta(); if(e){ toast(e); return; }
+  const m = meta();
+  const rec = { id: Date.now().toString(36) + Math.random().toString(36).slice(2,6), time: Date.now(), ...m,
+    values: draft.values.slice(), sync: SHEET_URL ? "pending" : "off" };
+  records.unshift(rec);
+  if(!persist(STORE, records)){ records.shift(); toast("저장하지 못했습니다. 시크릿 모드라면 일반 모드로 열어 주세요."); return; }
+  discardDraft(); closeEntry(); renderColorHints(); renderHist();
+  const j = judge(rec);
+  toast((j.fails.length ? "저장했습니다 · 기준 미만 " + j.fails.length + "개" : "저장했습니다") + (SHEET_URL ? " · 시트로 보내는 중…" : ""));
+  if(SHEET_URL) sendToSheet(rec).then(ok => toast(ok ? "시트에 입력했습니다" : "시트 전송 실패. 기록에서 다시 보낼 수 있습니다"));
+}
+$("ovSaveAnyway").addEventListener("click", doSave);
+$("ovKeep").addEventListener("click", () => { $("ovConfirm").hidden = true; cur = nextEmpty(0); renderEntry(); });
+$("ovClose").addEventListener("click", closeEntry);
+
+/* ---------- 판정 ---------- */
+
+function judge(r){
+  const fails = r.values.map((v, i) => isFail(v, r.lsl) ? i+1 : 0).filter(Boolean);
+  const vals = r.values.filter(v => v !== null);
+  const miss = r.values.length - vals.length;
+  return { fails, miss, min: vals.length ? Math.min(...vals) : null,
+    text: fails.length ? "불합격" : miss ? "일부 미입력" : "합격" };
+}
+
+/* ---------- 구글 시트 전송 ---------- */
+
+let sending = new Set();
+async function sendToSheet(rec){
+  if(!SHEET_URL || sending.has(rec.id)) return false;
+  sending.add(rec.id); rec.sync = "sending"; renderHist();
+  let ok = false;
+  try{
+    const j = judge(rec);
+    const res = await fetch(SHEET_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ key: SHEET_KEY, id: rec.id, time: rec.time, team: TEAM, product: rec.product, lsl: rec.lsl,
+        date: rec.date, color: rec.color, side: rec.side, note: rec.note, person: rec.person, values: rec.values,
+        judge: j.text, failPoints: j.fails.join(","), min: j.min })
+    });
+    const d = await res.json();
+    ok = !!(d && d.ok);
+  }catch(e){ ok = false; }
+  sending.delete(rec.id);
+  const r = records.find(x => x.id === rec.id);
+  if(r){ r.sync = ok ? "sent" : "failed"; persist(STORE, records); }
+  renderHist();
+  return ok;
+}
+async function resendAll(){
+  const list = records.filter(r => r.sync === "failed" || r.sync === "pending");
+  let n = 0; for(const r of list.slice().reverse()) if(await sendToSheet(r)) n++;
+  if(list.length) toast(n === list.length ? "시트에 " + n + "건 입력했습니다" : (list.length - n) + "건은 아직 보내지 못했습니다");
+}
+
+/* ---------- 기록 ---------- */
+
+function renderFilter(){
+  const sel = $("filter"), keep = sel.value;
+  const names = [...new Set([...products.map(p => p.name), ...records.map(r => r.product)])];
+  sel.textContent = ""; sel.append(Object.assign(el("option", "", "전체 품명"), { value: "" }));
+  names.forEach(n => sel.append(Object.assign(el("option", "", n), { value: n })));
+  sel.value = names.includes(keep) ? keep : "";
+}
+function shown(){ const f = $("filter").value; return f ? records.filter(r => r.product === f) : records; }
+
+function renderHist(){
+  const h = $("hist"); h.textContent = "";
+  $("histBtns").hidden = !records.length;
+  renderFilter();
+  const list = shown();
+  if(!list.length){ h.append(el("p", "empty", records.length ? "이 품명의 기록이 없습니다." : "아직 저장된 측정이 없습니다. 저장한 측정은 여기에 쌓이고, 관리시트 모양의 엑셀로 내려받거나 공유할 수 있습니다.")); return; }
+  list.forEach(d => {
+    const j = judge(d), box = el("div", "rec");
+    const top = el("div", "rec-top");
+    const nm = el("span", "rec-name", d.product);
+    nm.append(el("small", "", [md(d.date), d.color, d.side].filter(Boolean).join(" ")));
+    top.append(nm, el("span", "pill " + (j.fails.length ? "fail" : j.miss ? "warn" : "pass"), j.text + (j.fails.length ? " " + j.fails.length : "")));
+    box.append(top);
+    const vals = el("div", "vals");
+    d.values.forEach((v, i) => { const s = el("span", "v" + (isFail(v, d.lsl) ? " fail" : "")); s.append(el("i", "", i+1), v === null ? "–" : f1(v)); vals.append(s); });
+    box.append(vals);
+    const extra = [d.note, d.person].filter(Boolean).join(" · ");
+    if(extra) box.append(el("div", "rec-note", extra));
+    const act = el("div", "rec-act");
+    if(SHEET_URL && d.sync && d.sync !== "off"){
+      act.append(el("span", "sync " + d.sync, { sent: "시트 입력됨", sending: "시트로 보내는 중…", pending: "시트 전송 대기", failed: "시트 전송 실패" }[d.sync] || ""));
+      if(d.sync === "failed" || d.sync === "pending"){
+        const rs = el("button", "btn small", "다시 보내기"); rs.type = "button";
+        rs.addEventListener("click", () => sendToSheet(d).then(ok => toast(ok ? "시트에 입력했습니다" : "보내지 못했습니다. 인터넷 연결을 확인해 주세요")));
+        act.append(rs);
+      }
+    }
+    const del = el("button", "btn small", "삭제"); del.type = "button";
+    del.addEventListener("click", () => {
+      act.textContent = "";
+      act.append(el("span", "", d.sync === "sent" ? "휴대폰 기록만 지웁니다 (시트는 그대로)." : "이 기록을 지울까요?"));
+      const no = el("button", "btn small", "취소"); no.type = "button"; no.addEventListener("click", renderHist);
+      const yes = el("button", "btn small danger", "삭제"); yes.type = "button";
+      yes.addEventListener("click", () => { records = records.filter(x => x.id !== d.id); persist(STORE, records); renderHist(); toast("삭제했습니다"); });
+      act.append(no, yes);
+    });
+    act.append(del); box.append(act); h.append(box);
+  });
+}
+
+/* ---------- 엑셀 (관리시트 모양: 품명·월별 시트, 측정 1건 = 열 1개) ---------- */
+
+function sheetName(s, used){
+  let base = String(s).replace(/[\\\/\?\*\[\]:]/g, "-").slice(0, 31), n = base, i = 2;
+  while(used.has(n)){ const suf = " (" + i++ + ")"; n = base.slice(0, 31 - suf.length) + suf; }
+  used.add(n); return n;
+}
+function buildXlsx(list){
+  const wb = XLSX.utils.book_new(), used = new Set();
+  const asc = list.slice().sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.time - b.time));
+  const groups = new Map();
+  asc.forEach(r => { const k = r.product + "\u0000" + r.date.slice(0, 7); if(!groups.has(k)) groups.set(k, []); groups.get(k).push(r); });
+  for(const [k, rs] of groups){
+    const [name, ym] = k.split("\u0000"), [y, m] = ym.split("-");
+    const n = Math.max(...rs.map(r => r.values.length)), lsl = rs[rs.length-1].lsl;
+    const aoa = [["PAQ 관리시트  ·  품명 " + name + "  ·  " + y + "년 " + Number(m) + "월  ·  관리반 " + TEAM + "  ·  기준 " + lsl + " 이상"], []];
+    aoa.push(["측정일자", ...rs.map(r => md(r.date))]);
+    aoa.push(["칼라", ...rs.map(r => r.color)]);
+    if(rs.some(r => r.side)) aoa.push(["위치", ...rs.map(r => r.side)]);
+    if(rs.some(r => r.note)) aoa.push(["비고", ...rs.map(r => r.note)]);
+    for(let i = 0; i < n; i++) aoa.push(["point." + (i+1), ...rs.map(r => r.values[i] ?? null)]);
+    aoa.push(["판정", ...rs.map(r => judge(r).text)]);
+    aoa.push(["기준 미만", ...rs.map(r => judge(r).fails.map(x => "p" + x).join(","))]);
+    if(rs.some(r => r.person)) aoa.push(["측정자", ...rs.map(r => r.person)]);
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    Object.keys(ws).forEach(k => { if(k[0] !== "!" && ws[k].t === "n") ws[k].z = "0.0"; });
+    ws["!cols"] = [{ wch: 10 }, ...rs.map(() => ({ wch: 7 }))];
+    XLSX.utils.book_append_sheet(wb, ws, sheetName(name + " " + ym, used));
+  }
+  const head = ["측정일자","품명","칼라","위치","비고","측정자","판정","최소값","기준 미만 point","저장시각"];
+  const maxN = Math.max(...asc.map(r => r.values.length));
+  for(let i = 0; i < maxN; i++) head.push("point." + (i+1));
+  const all = [head];
+  asc.forEach(r => { const j = judge(r); all.push([r.date, r.product, r.color, r.side, r.note, r.person, j.text, j.min, j.fails.join(","), new Date(r.time), ...r.values]); });
+  const ws = XLSX.utils.aoa_to_sheet(all, { cellDates: true, dateNF: "yyyy-mm-dd hh:mm" });
+  ws["!cols"] = head.map((h, i) => ({ wch: i === 1 ? 16 : i === 9 ? 16 : i < 10 ? 9 : 7 }));
+  XLSX.utils.book_append_sheet(wb, ws, sheetName("전체기록", used));
+  const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  return new File([buf], "PAQ측정_" + today() + ".xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+}
+function downloadXlsx(){
+  if(typeof XLSX === "undefined"){ toast("엑셀 기능을 불러오지 못했습니다. 인터넷 연결을 확인해 주세요"); return; }
+  const list = shown(); if(!list.length) return;
+  const f = buildXlsx(list), url = URL.createObjectURL(f);
+  const a = document.createElement("a"); a.href = url; a.download = f.name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+async function shareXlsx(){
+  if(typeof XLSX === "undefined"){ toast("엑셀 기능을 불러오지 못했습니다. 인터넷 연결을 확인해 주세요"); return; }
+  const list = shown(); if(!list.length) return;
+  const f = buildXlsx(list);
+  if(navigator.canShare && navigator.canShare({ files: [f] })){
+    try{ await navigator.share({ files: [f], title: "PAQ 측정 기록" }); }
+    catch(e){ if(e && e.name !== "AbortError") downloadXlsx(); }
+  } else { downloadXlsx(); toast("이 기기는 바로 공유가 안 돼서 파일로 내려받았습니다"); }
+}
+
+/* ---------- 시작 ---------- */
+
+let pendingNext = null;
+function begin(kind){
+  // kind: "photo" | "album" | "manual"
+  if(kind === "photo") $("photo").click();
+  else if(kind === "album") $("album").click();
+  else { showErr(""); newDraft(null); openEntry(); }
+}
+function guard(e, kind){
+  const m = checkMeta();
+  if(m){ e && e.preventDefault(); showErr(m); return false; }
+  showErr("");
+  if(hasValues()){ e && e.preventDefault(); pendingNext = kind; $("pendingBox").hidden = false; $("draftBox").hidden = true; $("pendResume").focus(); return false; }
+  return true;
+}
+$("photo").addEventListener("click", e => guard(e, "photo"));
+$("album").addEventListener("click", e => guard(e, "album"));
+$("photo").addEventListener("change", e => { const f = e.target.files && e.target.files[0]; if(f) onPhoto(f); });
+$("album").addEventListener("change", e => { const f = e.target.files && e.target.files[0]; if(f) onPhoto(f); });
+$("manualBtn").addEventListener("click", () => { if(guard(null, "manual")) begin("manual"); });
+$("pendResume").addEventListener("click", () => { $("pendingBox").hidden = true; openEntry(); });
+$("pendDrop").addEventListener("click", () => { $("pendingBox").hidden = true; const k = pendingNext; pendingNext = null; discardDraft(); begin(k); });
+$("pendCancel").addEventListener("click", () => { $("pendingBox").hidden = true; renderDraftBox(); });
+$("draftResume").addEventListener("click", openEntry);
+$("draftDrop").addEventListener("click", () => { discardDraft(); toast("작성 중이던 값을 버렸습니다"); });
+$("product").addEventListener("change", onProductChange);
+["color","note","person"].forEach(id => $(id).addEventListener("input", saveForm));
+document.querySelectorAll('input[name=side]').forEach(r => r.addEventListener("change", saveForm));
+$("pmBtn").addEventListener("click", openPm);
+$("pmAdd").addEventListener("click", () => { pmEdit.push({ name: "", points: 10, side: false, lsl: 6.8 }); renderPm(); });
+$("pmCancel").addEventListener("click", () => $("pmCard").hidden = true);
+$("pmSave").addEventListener("click", savePm);
+$("filter").addEventListener("change", renderHist);
+$("xlsxBtn").addEventListener("click", downloadXlsx);
+$("shareBtn").addEventListener("click", shareXlsx);
+window.addEventListener("beforeunload", e => { if(hasValues()){ e.preventDefault(); e.returnValue = ""; } });
+
+products = load(PSTORE, null);
+if(!Array.isArray(products) || !products.length) products = PRODUCTS.map(p => ({ ...p }));
+records = load(STORE, []); if(!Array.isArray(records)) records = [];
+renderProducts(); restoreForm(); formReady = true; onProductChange();
+const d0 = load(DSTORE, null);
+if(d0 && Array.isArray(d0.values) && d0.values.some(v => v !== null) && products.some(p => p.name === d0.product)){
+  draft = { product: d0.product, values: d0.values, img: null };
+}
+records.forEach(r => { if(r.sync === "sending") r.sync = "pending"; if(SHEET_URL && (!r.sync || r.sync === "off")) r.sync = "pending"; });
+renderColorHints(); renderHist(); renderDraftBox();
+// 지난번에 못 보낸 기록은 앱을 열 때와 인터넷이 다시 연결될 때 자동으로 다시 보냅니다
+if(SHEET_URL){ resendAll(); window.addEventListener("online", resendAll); }
+</script>
+</body>
+</html>
