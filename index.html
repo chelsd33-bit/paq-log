@@ -272,7 +272,7 @@ input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid 
    SHEET_URL: 구글 시트의 Apps Script를 "웹 앱"으로 배포하고 받은 주소 (…/exec). 비워 두면 시트 전송을 쓰지 않습니다.
    SHEET_KEY: 시트 코드의 KEY와 같은 값. 비워 두면 검사하지 않습니다.
    PRODUCTS: 품명, point 개수, 위치(LH/RH) 구분 여부, 규격하한치(LSL). 여기를 고치면 모든 사람에게 적용됩니다. */
-const SHEET_URL = "";
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbwE75-DkvKw3rxHj-KPmK27wsXmQloM4u9VqN4sl-znkZArVyKP4mwJ6fV11nqRuvt8/exec";
 const SHEET_KEY = "";
 const TEAM = "베젤반";
 const PRODUCTS = [
@@ -819,4 +819,5 @@ if(SHEET_URL){ resendAll(); window.addEventListener("online", resendAll); }
 </script>
 </body>
 </html>
+
 
