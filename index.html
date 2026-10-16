@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>색차 측정 기록</title>
+<title>PAQ 측정 기록</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
 <style>
-/* Layout: 입력 정보 카드 → 전체화면 확인·입력(사진 + 각도×값 표 + 숫자판) → 기기 내 기록과 엑셀/시트 */
+/* Layout: 입력 정보 카드 → 전체화면 입력(사진 + point 칩 + 숫자판) → 기기 내 기록과 엑셀/시트 */
 :root{
   --bg:#f3f4f2; --surface:#ffffff; --ink:#1b2124; --muted:#5d686d; --line:#d9dedc;
   --accent:#1f5f74; --accent-ink:#ffffff; --accent-soft:#dcecf1;
@@ -35,7 +35,7 @@ h2{font-size:13px;font-weight:600;letter-spacing:.06em;color:var(--muted);margin
 .fields .wide{grid-column:1/-1}
 @media (max-width:420px){.fields{grid-template-columns:1fr}}
 label.f,.f{display:grid;gap:4px;font-size:13px;color:var(--muted);min-width:0}
-input[type=text],input[type=date],select{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%;min-width:0;min-height:42px}
+input[type=text],input[type=date],input[type=number],select{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%;min-width:0;min-height:42px}
 #color{text-transform:uppercase;font-family:var(--mono)}
 .chips{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
 @media (max-width:360px){.chips{grid-template-columns:repeat(3,1fr)}}
@@ -51,15 +51,9 @@ input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid 
 .seg span{display:block;text-align:center;padding:9px 0;border:1px solid var(--line);border-radius:6px;font-weight:600;color:var(--ink);background:var(--bg);font-family:var(--mono)}
 .seg input:checked + span{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .seg input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
-.pchips{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
-.pc{font:inherit;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;min-height:46px;cursor:pointer;display:grid;place-items:center;line-height:1.15;position:relative;touch-action:manipulation}
-.pc b{font-family:var(--mono);font-size:17px}
-.pc small{font-size:10.5px;color:var(--muted)}
-.pc.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.pc.on small{color:var(--accent-ink)}
-.pc.done::after{content:"✓";position:absolute;top:-7px;right:-5px;width:18px;height:18px;border-radius:50%;background:var(--pass);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center}
-.pc.done.fail::after{background:var(--fail);content:"!"}
-.shoot{font:inherit;border:0;width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:16px;font-size:17px;font-weight:600;cursor:pointer;position:relative}
+.pinfo{font-size:13px;color:var(--muted);margin:0 0 12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.pinfo b{color:var(--ink);font-weight:600}
+.shoot{display:flex;align-items:center;justify-content:center;gap:10px;background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:16px;font-size:17px;font-weight:600;cursor:pointer;position:relative}
 .shoot:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 .shoot.off{opacity:.55;pointer-events:none}
 .shoot input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
@@ -79,12 +73,20 @@ input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid 
 .actions{display:flex;gap:10px;flex-wrap:wrap}
 .btn{font:inherit;font-weight:600;border-radius:8px;padding:10px 16px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
 .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:disabled{opacity:.5;cursor:default}
 .btn.small{padding:6px 10px;font-size:13px;font-weight:500}
 .btn.danger{color:var(--fail);border-color:var(--fail)}
 .pill{display:inline-block;font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;white-space:nowrap}
 .pill.fail{background:var(--fail-soft);color:var(--fail)}
 .pill.pass{background:var(--pass-soft);color:var(--pass)}
 .pill.warn{background:var(--warn-soft);color:var(--warn)}
+
+/* 품명 관리 */
+.pm-row{display:grid;grid-template-columns:minmax(0,1fr) 70px 70px 64px auto;gap:6px;align-items:end;padding:8px 0;border-top:1px solid var(--line)}
+.pm-row:first-of-type{border-top:0}
+.pm-row .f{font-size:12px}
+.pm-row input[type=checkbox]{width:22px;height:22px;margin:10px auto}
+@media (max-width:480px){.pm-row{grid-template-columns:1fr 1fr 1fr}.pm-row .pm-name{grid-column:1/-1}.pm-row .pm-del{grid-column:3;justify-self:end}}
 
 /* 기록 */
 .histhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
@@ -97,12 +99,11 @@ input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid 
 .rec-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
 .rec-name{font-weight:600;min-width:0;overflow-wrap:anywhere}
 .rec-name small{font-family:var(--mono);font-weight:500;color:var(--muted);margin-left:6px}
-.kchips{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.kchip{border-radius:6px;padding:6px 8px;display:grid;font-variant-numeric:tabular-nums;background:var(--bg);color:var(--muted)}
-.kchip.fail{background:var(--fail-soft);color:var(--fail)}
-.kchip.pass{background:var(--pass-soft);color:var(--pass)}
-.kchip small{font-family:var(--mono);font-size:11px;opacity:.85}
-.kchip strong{font-family:var(--mono);font-size:16px}
+.vals{display:flex;flex-wrap:wrap;gap:4px}
+.v{font-family:var(--mono);font-size:13px;border-radius:5px;padding:2px 6px;background:var(--bg);font-variant-numeric:tabular-nums}
+.v i{font-style:normal;color:var(--muted);font-size:11px;margin-right:5px;padding-right:5px;border-right:1px solid var(--line)}
+.v.fail{background:var(--fail-soft);color:var(--fail);font-weight:600}
+.v.fail i{color:inherit}
 .rec-note{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
 .rec-act{display:flex;gap:8px;justify-content:flex-end;align-items:center;font-size:13px;flex-wrap:wrap}
 .sync{font-size:12px;font-weight:600;margin-right:auto}
@@ -110,132 +111,85 @@ input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid 
 .sync.pending,.sync.sending{color:var(--muted)}
 .sync.failed{color:var(--fail)}
 
-/* 전체화면 확인·입력 */
+/* 전체화면 입력 */
 .ov{position:fixed;inset:0;z-index:10;background:var(--bg);display:flex;flex-direction:column;height:100dvh;padding-top:env(safe-area-inset-top,0px)}
 .ov-top{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--line)}
 .ov-title{flex:1;min-width:0;display:grid;line-height:1.3}
 .ov-title strong{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ov-title span{font-size:12px;color:var(--muted);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ph{position:relative;flex:1 1 0;min-height:110px;background:var(--photo)}
+.ph{position:relative;flex:1 1 0;min-height:120px;background:var(--photo)}
 .ph-scroll{position:absolute;inset:0;overflow:auto;touch-action:manipulation;overscroll-behavior:contain}
 .ph-scroll img{display:block;width:100%;height:100%;object-fit:contain;user-select:none;-webkit-user-select:none}
 .ph-tools{position:absolute;right:8px;bottom:8px;display:flex;gap:6px}
 .ph-tools button{width:40px;height:40px;border-radius:8px;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:20px;cursor:pointer;display:grid;place-items:center}
 .ph-tools button svg{width:20px;height:20px}
-.ph-tools button.wide{width:auto;padding:0 12px;font:inherit;font-size:14px;font-weight:600;background:rgba(31,95,116,.9)}
-.ph-tools button:disabled{opacity:.6}
 .ph-zoom{position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;border-radius:6px;padding:4px 8px;font-family:var(--mono)}
 .ov.nophoto .ph{display:none}
-.ov.nophoto .grid{flex:1 1 auto;max-height:none;align-content:start}
-.grid{display:grid;grid-template-columns:minmax(58px,.9fr) repeat(4,minmax(0,1fr));gap:4px;padding:8px 10px;max-height:44vh;overflow-y:auto;background:var(--surface);border-top:1px solid var(--line);align-content:start}
-.gh{font-size:11px;color:var(--muted);font-family:var(--mono);text-align:center;padding-bottom:2px;position:sticky;top:-8px;background:var(--surface);z-index:1}
-.lab{font:inherit;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:2px 4px;display:grid;justify-items:start;align-content:center;cursor:pointer;min-height:44px;text-align:left}
-.lab b{font-family:var(--mono);font-size:14px;line-height:1.15}
-.lab small{font-size:10.5px;font-weight:600;line-height:1.2}
-.lab.key b::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:4px;vertical-align:middle}
-.lab.pass small{color:var(--pass)}
-.lab.fail{background:var(--fail-soft);border-color:var(--fail)}
-.lab.fail small{color:var(--fail)}
-.lab .chk{color:var(--warn)}
-.cell{font:inherit;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:2px 4px;cursor:pointer;min-height:44px;font-family:var(--mono);font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;text-align:right;min-width:0;overflow:hidden}
-.cell.empty{color:var(--muted);font-weight:400;text-align:center}
-.cell.auto{border-style:dashed}
-.cell.rowfail{color:var(--fail)}
-.cell.cur{border-color:var(--accent);border-style:solid;box-shadow:0 0 0 2px var(--accent);background:var(--accent-soft)}
-.cell.typing{color:var(--accent)}
-.ov-stat{display:flex;gap:6px 8px;align-items:center;flex-wrap:wrap;padding:6px 12px;font-size:13px;color:var(--muted);background:var(--surface)}
+.ov.nophoto .pts{flex:1 1 auto;max-height:none;align-content:start}
+.pts{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:6px;padding:10px 12px;max-height:30vh;overflow-y:auto;background:var(--surface);border-top:1px solid var(--line)}
+.pt{font:inherit;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:4px 6px;display:grid;text-align:left;cursor:pointer;min-height:48px}
+.pt small{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.pt b{font-family:var(--mono);font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2}
+.pt.empty b{color:var(--muted);font-weight:400}
+.pt.fail{background:var(--fail-soft);border-color:var(--fail);color:var(--fail)}
+.pt.fail small{color:var(--fail)}
+.pt.cur{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent);background:var(--accent-soft)}
+.pt.cur.fail{background:var(--fail-soft)}
+.pt.typing b{color:var(--accent)}
+.ov-stat{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 12px;font-size:13px;color:var(--muted);background:var(--surface)}
 .ov-stat .done{color:var(--pass);font-weight:600}
 .ov-confirm{margin:0 12px 8px;background:var(--warn-soft);border:1px solid var(--warn);border-radius:8px;padding:10px;display:grid;gap:8px;font-size:14px}
 .pad{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:8px 12px calc(10px + env(safe-area-inset-bottom,0px));background:var(--surface);border-top:1px solid var(--line)}
-.pad button{font:inherit;font-size:24px;font-weight:600;font-family:var(--mono);height:52px;border-radius:8px;border:0;background:var(--key);color:var(--ink);cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.pad button{font:inherit;font-size:24px;font-weight:600;font-family:var(--mono);height:54px;border-radius:8px;border:0;background:var(--key);color:var(--ink);cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .pad button:active{filter:brightness(.88)}
 .pad button.fn{font-family:var(--sans);font-size:15px;background:var(--bg);border:1px solid var(--line)}
 .pad button.go{font-family:var(--sans);font-size:16px;background:var(--accent);color:var(--accent-ink)}
 .pad button.go.ready{box-shadow:0 0 0 3px var(--accent-soft)}
-@media (max-height:680px){.pad button{height:44px}.grid{max-height:40vh}.cell,.lab{min-height:38px}}
+@media (max-height:640px){.pad button{height:46px}.pts{max-height:26vh}}
 
 .toast{position:fixed;z-index:20;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:14px;max-width:calc(100% - 32px)}
-.ocrstat{font-size:13px;margin:10px 0 0;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.ocrstat:empty{display:none}
-.ocrstat.ready{color:var(--pass)}
-.ocrstat.failed{color:var(--fail);font-weight:600}
-.ocrstat button{font:inherit;font-size:13px;font-weight:600;color:var(--accent);background:none;border:1px solid var(--accent);border-radius:6px;padding:3px 10px;cursor:pointer}
-.inapp{background:var(--warn-soft);border:1px solid var(--warn);border-radius:10px;padding:12px 14px;display:grid;gap:10px;font-size:14px}
-.inapp p{margin:0}
-.ver{font-size:12px;color:var(--muted);text-align:center;margin:0}
-.auto{display:flex;gap:8px;align-items:flex-start;margin-top:12px;font-size:14px;cursor:pointer}
-.auto input{width:20px;height:20px;margin:1px 0 0;flex:none;accent-color:var(--accent)}
-.auto small{display:block;font-size:12px;color:var(--muted)}
-.snack{position:fixed;z-index:21;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 8px 8px 16px;border-radius:8px;font-size:14px;width:max-content;max-width:calc(100% - 32px);display:flex;gap:12px;align-items:center}
-.snack button{font:inherit;font-weight:700;background:none;border:0;color:var(--accent-soft);padding:8px 10px;cursor:pointer;flex:none}
-/* 앱 카메라 */
-.cam{position:fixed;inset:0;z-index:30;background:#000;display:flex;flex-direction:column}
-.cam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.cam-guide{position:absolute;left:8%;right:8%;top:16%;bottom:22%;border:3px solid rgba(255,255,255,.95);border-radius:10px;box-shadow:0 0 0 9999px rgba(0,0,0,.35);pointer-events:none}
-.cam-guide span{position:absolute;left:0;right:0;top:-34px;text-align:center;color:#fff;font-size:14px;font-weight:600;text-shadow:0 1px 3px #000}
-.cam-top{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:center;padding:calc(10px + env(safe-area-inset-top,0px)) 12px 10px;color:#fff;font-size:12px;font-family:var(--mono)}
-.cam-top .btn{background:rgba(0,0,0,.55);color:#fff;border-color:rgba(255,255,255,.5)}
-.cam-bottom{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:center;align-items:center;padding:16px 16px calc(24px + env(safe-area-inset-bottom,0px))}
-.shutter{width:76px;height:76px;border-radius:50%;border:5px solid #fff;background:rgba(255,255,255,.25);cursor:pointer}
-.shutter:active{background:rgba(255,255,255,.6)}
-.shutter:disabled{opacity:.5}
-.cam-tip{position:absolute;left:12px;right:12px;bottom:calc(112px + env(safe-area-inset-bottom,0px));text-align:center;color:#fff;font-size:13px;text-shadow:0 1px 3px #000}
 [hidden]{display:none!important}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="inapp" id="inapp" role="alert" hidden>
-    <p><b id="inappWho">앱 안의 브라우저</b>에서 열려 있습니다. 여기서는 사진 판독이 안 될 수 있으니 <b>크롬</b>이나 <b>삼성 인터넷</b>으로 열어 주세요.</p>
-    <div class="actions">
-      <button class="btn primary small" id="inappOpen" type="button">다른 브라우저로 열기</button>
-      <button class="btn small" id="inappCopy" type="button">주소 복사</button>
-    </div>
-    <p class="hint" style="margin:0">버튼이 안 되면 화면 오른쪽 위나 아래의 ⋮ 메뉴에서 "다른 브라우저로 열기"를 누르세요.</p>
-  </div>
   <header>
-    <h1>색차 측정 기록</h1>
-    <p class="sub">색차계 화면(Δ 화면)을 찍으면 ΔE*ab 값을 읽어 바로 저장합니다. 확실하지 않은 값이 있으면 확인 화면이 열려 사진을 보며 고칠 수 있습니다. 핵심 각도는 25°, 45°, 75°입니다.</p>
+    <h1>PAQ 측정 기록</h1>
+    <p class="sub">제품에 적힌 PAQ 값을 사진으로 찍어 띄워 두고, 숫자판으로 point별로 입력합니다. 기준 미만 값은 바로 빨갛게 표시됩니다.</p>
   </header>
 
   <section class="card">
     <h2>새 측정</h2>
     <div class="fields">
-      <label class="f">품명<select id="product"></select></label>
+      <label class="f wide">품명<select id="product"></select></label>
       <label class="f">측정일자<input type="date" id="date"></label>
+      <div class="f wide">
+        <label class="f" for="color">칼라 (아래에서 고르거나 직접 입력)</label>
+        <input type="text" id="color" list="colorList" placeholder="예: NCM" autocomplete="off" autocapitalize="characters" maxlength="20">
+        <div class="chips" id="colorChips" role="group" aria-label="칼라 고르기"></div>
+      </div>
       <div class="f wide" id="sideBox" role="radiogroup" aria-label="위치">위치
         <div class="seg">
           <label><input type="radio" name="side" value="LH"><span>LH</span></label>
           <label><input type="radio" name="side" value="RH"><span>RH</span></label>
         </div>
       </div>
-      <div class="f wide"><span>측정 포인트 <span id="pointHint"></span></span>
-        <div class="pchips" id="pointChips" role="radiogroup" aria-label="측정 포인트"></div>
-      </div>
-      <div class="f wide">
-        <label class="f" for="color">칼라 (아래에서 고르거나 직접 입력)</label>
-        <input type="text" id="color" list="colorList" placeholder="예: NCM" autocomplete="off" autocapitalize="characters" maxlength="20">
-        <div class="chips" id="colorChips" role="group" aria-label="칼라 고르기"></div>
-      </div>
-      <label class="f">시료 / 로트<input type="text" id="sampleName" placeholder="선택" autocomplete="off" maxlength="80"></label>
+      <label class="f">비고<input type="text" id="note" placeholder="예: 스윙, 코치 (선택)" autocomplete="off" maxlength="60"></label>
       <label class="f">측정자<input type="text" id="person" placeholder="선택" autocomplete="off" maxlength="40"></label>
-      <label class="f wide">비고<input type="text" id="note" placeholder="선택" autocomplete="off" maxlength="60"></label>
     </div>
     <datalist id="colorList"></datalist>
+    <p class="pinfo"><span id="pinfo"></span><button class="linkbtn" id="pmBtn" type="button">품명 추가·수정</button></p>
 
-    <button class="shoot" id="shootBtn" type="button">
+    <label class="shoot" id="shootBtn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
-      <span>색차계 화면 찍기</span>
-    </button>
-    <p class="ocrstat" id="ocrStat" aria-live="polite"></p>
-    <label class="auto"><input type="checkbox" id="autoSave"> 찍으면 바로 저장 <small>(24칸이 다 읽히고 검산이 모두 맞을 때만. 아니면 확인 화면이 열립니다)</small></label>
+      <span>제품 사진 찍고 입력</span>
+      <input type="file" id="photo" accept="image/*" capture="environment" aria-label="제품 사진 찍고 입력">
+    </label>
     <div class="row2">
-      <span class="linkbtn">앨범에서 고르기 (여러 장 가능)<input type="file" id="album" accept="image/*" multiple aria-label="앨범에서 사진 고르기, 여러 장 가능"></span>
-      <span class="linkbtn">휴대폰 기본 카메라로 찍기<input type="file" id="photo" accept="image/*" capture="environment" aria-label="휴대폰 기본 카메라로 찍기"></span>
+      <span class="linkbtn">앨범에서 사진 고르기<input type="file" id="album" accept="image/*" aria-label="앨범에서 사진 고르기"></span>
       <button class="linkbtn" id="manualBtn" type="button">사진 없이 입력</button>
     </div>
-    <p class="hint">표가 화면에 꽉 차게, 정면에서 반사 없이 찍으면 잘 읽힙니다.</p>
-    <div class="status" id="busy" hidden><div class="spin"></div><span id="busyText">사진을 읽는 중…</span></div>
+    <div class="status" id="busy" hidden><div class="spin"></div><span>사진을 준비하는 중…</span></div>
     <div class="pending" id="draftBox" role="status" hidden>
       <p><b>작성 중인 측정이 있습니다.</b> <span id="draftText"></span></p>
       <div class="actions">
@@ -254,6 +208,19 @@ input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid 
     <div class="err" id="err" hidden></div>
   </section>
 
+  <section class="card" id="pmCard" hidden>
+    <h2>품명 추가·수정</h2>
+    <p class="hint" style="margin:0 0 10px">이 휴대폰에만 적용됩니다. 모든 사람에게 똑같이 쓰려면 관리자에게 앱 코드의 품명 목록 수정을 요청하세요.</p>
+    <div id="pmList"></div>
+    <div class="actions" style="margin-top:12px">
+      <button class="btn small" id="pmAdd" type="button">+ 품명 추가</button>
+      <span style="flex:1"></span>
+      <button class="btn small" id="pmCancel" type="button">취소</button>
+      <button class="btn small primary" id="pmSave" type="button">저장</button>
+    </div>
+    <div class="err" id="pmErr" hidden></div>
+  </section>
+
   <section class="card">
     <div class="histhead">
       <h2>측정 기록 (이 휴대폰)</h2>
@@ -267,24 +234,21 @@ input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid 
   </section>
 </div>
 
-<p class="ver" id="ver"></p>
-<div class="ov" id="entry" role="dialog" aria-modal="true" aria-labelledby="ovTitle" hidden>
+<div class="ov" id="entry" role="dialog" aria-modal="true" aria-labelledby="ovProduct" hidden>
   <div class="ov-top">
-    <div class="ov-title"><strong id="ovTitle"></strong><span id="ovMeta"></span></div>
-    <button class="btn small" id="ovSkip" type="button" hidden>이 사진 건너뛰기</button>
+    <div class="ov-title"><strong id="ovProduct"></strong><span id="ovMeta"></span></div>
     <button class="btn small" id="ovClose" type="button">닫기</button>
   </div>
   <div class="ph">
-    <div class="ph-scroll" id="phScroll"><img id="phImg" alt="색차계 화면 사진" draggable="false"></div>
+    <div class="ph-scroll" id="phScroll"><img id="phImg" alt="제품에 적힌 값 사진" draggable="false"></div>
     <span class="ph-zoom" id="phZoom">1×</span>
     <div class="ph-tools">
-      <button type="button" id="readHere" class="wide">이 부분 읽기</button>
       <button type="button" id="zOut" aria-label="축소">−</button>
       <button type="button" id="zIn" aria-label="확대">+</button>
       <button type="button" id="rot" aria-label="사진 돌리기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
     </div>
   </div>
-  <div class="grid" id="grid"></div>
+  <div class="pts" id="pts"></div>
   <div class="ov-stat" id="ovStat" aria-live="polite"></div>
   <div class="ov-confirm" id="ovConfirm" role="alert" hidden>
     <span id="ovConfirmText"></span>
@@ -297,467 +261,74 @@ input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid 
     <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button><button type="button" class="fn" data-k="back" aria-label="지우기">⌫</button>
     <button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button><button type="button" class="fn" data-k="prev">◀ 이전</button>
     <button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button><button type="button" class="fn" data-k="next">다음 ▶</button>
-    <button type="button" class="fn" data-k="neg" aria-label="부호 바꾸기">+/−</button><button type="button" data-k="0">0</button><button type="button" data-k=".">.</button><button type="button" class="go" data-k="save" id="saveKey">저장</button>
+    <button type="button" data-k=".">.</button><button type="button" data-k="0">0</button><button type="button" class="fn" data-k="clear">비우기</button><button type="button" class="go" data-k="save" id="saveKey">저장</button>
   </div>
 </div>
-<div class="cam" id="cam" role="dialog" aria-modal="true" aria-label="색차계 화면 찍기" hidden>
-  <video id="camVideo" playsinline muted autoplay></video>
-  <div class="cam-guide"><span>표(각도 ~ db 칸)가 이 틀에 꽉 차게</span></div>
-  <div class="cam-top"><span id="camInfo"></span><button class="btn small" id="camClose" type="button">닫기</button></div>
-  <p class="cam-tip">Δ 화면인지 확인하고, 반사가 없게 정면에서 찍으세요</p>
-  <div class="cam-bottom"><button class="shutter" id="camShot" type="button" aria-label="찍기"></button></div>
-</div>
 <div class="toast" id="toast" hidden></div>
-<div class="snack" id="snack" role="status" hidden><span id="snackText"></span><button type="button" id="snackUndo">되돌리기</button></div>
 
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
-<script>window.Tesseract || document.write('<script src="https://unpkg.com/tesseract.js@5.1.1/dist/tesseract.min.js"><\/script>');</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script>window.XLSX || document.write('<script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>');</script>
 <script>
 /* ===== 관리자 설정 =====
    SHEET_URL: 구글 시트의 Apps Script를 "웹 앱"으로 배포하고 받은 주소 (…/exec). 비워 두면 시트 전송을 쓰지 않습니다.
-   SHEET_KEY: 시트 코드의 KEY와 같은 값. 비워 두면 검사하지 않습니다. */
-const SHEET_URL = "https://script.google.com/macros/s/AKfycbzWcIgH1kunyEb8ThqgxOOluAsn_xMbkon5OKY9NxSlJa9Jf9NmENbCamVD5fiTB8U_/exec";
-const SHEET_KEY = "jgcolor-c6100f8f";
-/* 품명별 측정 포인트 수 (JG 색차 측정 포인트 표), 위치(LH/RH) 구분 여부 */
+   SHEET_KEY: 시트 코드의 KEY와 같은 값. 비워 두면 검사하지 않습니다.
+   PRODUCTS: 품명, point 개수, 위치(LH/RH) 구분 여부, 규격하한치(LSL). 여기를 고치면 모든 사람에게 적용됩니다. */
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbwE75-DkvKw3rxHj-KPmK27wsXmQloM4u9VqN4sl-znkZArVyKP4mwJ6fV11nqRuvt8/exec";
+const SHEET_KEY = "";
+const TEAM = "베젤반";
 const PRODUCTS = [
-  { name: "JG H/L",     points: 5, side: false },
-  { name: "JG R/C I/S", points: 5, side: false },
-  { name: "JG R/C O/S", points: 5, side: true },
-  { name: "JG S/REP",   points: 3, side: true },
+  { name: "JG H/L LENS",   points: 14, side: false, lsl: 6.8 },
+  { name: "JG S/REP",      points: 5,  side: true,  lsl: 6.8 },
+  { name: "JG RC IS",      points: 11, side: false, lsl: 6.8 },
+  { name: "JG RC OS 코치", points: 9,  side: true,  lsl: 6.8 },
 ];
-/* [코드, 이름, 실제 색]. PAQ 앱과 같은 현장 색상표 */
-/* 부품 기준 ΔE (25°, 45°, 75°). dE가 기준 이하면 합격, 넘으면 불합격.
-   KCC·KNK 색차 기준표의 "부품 ΔE" 열. "(무)"가 붙은 칼라는 같은 코드의 기준을 씀.
-   기준이 없는 칼라는 색차계 화면의 빨간 칸으로 판정함. */
-const SPEC = {
-  // KCC
-  PH3: [3.15, 1.20, 1.66], NCM: [3.23, 1.20, 1.22], MPE: [3.30, 1.20, 1.65], SSS: [3.26, 1.20, 1.65], SMZ: [3.06, 1.20, 2.61],
-  BCA: [2.69, 1.20, 1.80], CBA: [2.69, 1.20, 1.80], HT7: [2.69, 1.20, 1.80], NRB: [2.69, 1.20, 1.80], LAG: [2.69, 1.20, 1.56],
-  // KNK (1·2번은 표에서 칼라 이름이 가려져 있어 UYH·FT7로 봄)
-  UYH: [2.18, 1.00, 1.22], FT7: [2.18, 1.00, 1.22],
-  VET: [2.69, 1.20, 1.41], NAE: [1.93, 1.20, 1.58], DAL: [2.45, 1.20, 1.73], MAB: [2.92, 1.20, 1.73],
-};
-const SPEC_ANGLES = ["r45as25", "r45as45", "r45as75"];
-function specFor(color, angle){
-  const code = String(color || "").toUpperCase().replace(/\s*\(.*\)\s*$/, "").trim();
-  const i = SPEC_ANGLES.indexOf(angle);
-  return SPEC[code] && i >= 0 ? SPEC[code][i] : null;
-}
-/** 기준이 있는 각도는 dE로 합격/불합격을 다시 정함 */
-function applySpec(rows, color){
-  rows.forEach(r => {
-    const lim = specFor(color, r.angle);
-    r.spec = lim;
-    if(lim !== null && r.dE !== null && r.dE !== undefined) r.status = r.dE > lim + 1e-9 ? "fail" : "pass";
-  });
-  return rows;
-}
-
+/* [코드, 이름, 실제 색]. 색은 현장 색상표 사진에서 눈으로 읽은 값이라 약간 다를 수 있습니다. 어긋나면 #색만 고치면 됩니다. */
 const COLORS = [
   ["PH3","비크블랙","#202226"], ["UYH","우유니 화이트","#f0f0ee"], ["FT7(무)","마테호른 화이트","#edeff1"], ["SSS","세빌 실버","#c0bfc6"],
   ["NCM","마칼루 그레이","#7a7584"], ["MPE(무)","마칼루 그레이 매트","#6e6975"], ["NRB","카디프 블루","#141b5c"], ["HT7","카디프 그린","#1f2b29"],
   ["SMZ(무)","모나쉬 실버","#9f9aa5"], ["VET","바에나 그린","#5d6b3c"], ["NAE","세이셸 베이지","#bdb092"], ["DAL","자이푸르 로즈","#8b7b88"],
   ["BCA","소노란 네이비","#25214d"], ["MAB","벨라 버건디","#6a1d25"], ["CBA","코모 블루","#7e86a6"], ["LAG","타우포 그레이","#4b4a6b"],
 ];
+/** 바탕색이 밝으면 검정 글자, 어두우면 흰 글자 */
+function inkOn(hex){ const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255; return (0.299*r + 0.587*g + 0.114*b) > 150 ? "#111" : "#fff"; }
 
-const KEY = ["r45as25","r45as45","r45as75"];
-const ORDER = ["r45as-15","r45as15","r45as25","r45as45","r45as75","r45as110"];
-const COLS = ["dE","dL","da","db"];
-const STORE = "cm_records_v1", FSTORE = "cm_form_v1", DSTORE = "cm_draft_v1";
+const STORE = "paq_records_v1", PSTORE = "paq_products_v1", FSTORE = "paq_form_v1", DSTORE = "paq_draft_v1";
+const MAX_POINTS = 30;
 const $ = id => document.getElementById(id);
-let current = null, records = [], worker = null;   // current = 작성 중 측정 {rows, img}
-let cur = 0, buf = "", zoom = 1, confirmShown = false, formReady = false, pendingNext = null;
+let products = [], records = [], draft = null, cur = 0, buf = "", zoom = 1, confirmShown = false;
 
 function load(k, d){ try{ const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); }catch(e){ return d; } }
 function persist(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } }
 function drop(k){ try{ localStorage.removeItem(k); }catch(e){} }
-function num(v){ if(v===null||v===undefined||v==="") return null; const n = Number(String(v).replace(/[−–—~]/g,"-").replace(",",".")); return Number.isFinite(n) ? n : null; }
-function fmt(v){ const n = num(v); return n===null ? "" : n.toFixed(2); }
-function calc(r){ if([r.dL,r.da,r.db].some(x => x===null)) return null; return Math.sqrt(r.dL**2 + r.da**2 + r.db**2); }
-function badCheck(r){ const v = calc(r); return r.dE !== null && v !== null && Math.abs(v - r.dE) > 0.02; }
 function today(){ const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
 function md(s){ const p = String(s || "").split("-"); return p.length === 3 ? Number(p[1]) + "/" + Number(p[2]) : s; }
-function short(a){ return a.replace("r45as","") + "°"; }
+function f1(v){ return v === null || v === undefined ? "" : Number(v).toFixed(1); }
+function isFail(v, lsl){ return v !== null && v !== undefined && v < lsl - 1e-9; }
 function toast(msg){ const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 2600); }
 function showErr(msg){ $("err").textContent = msg; $("err").hidden = !msg; }
 function el(tag, cls, text){ const e = document.createElement(tag); if(cls) e.className = cls; if(text !== undefined) e.textContent = text; return e; }
-function inkOn(hex){ const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255; return (0.299*r + 0.587*g + 0.114*b) > 150 ? "#111" : "#fff"; }
 
-/* ---------- 사진 판독 (휴대폰 안에서 Tesseract로) ---------- */
+/* ---------- 품명 ---------- */
 
-function loadImage(file){
-  return new Promise((resolve, reject) => {
-    const img = new Image(); const url = URL.createObjectURL(file);
-    img.onload = () => resolve({ img, url });
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("이 사진 형식은 읽을 수 없습니다. 다시 찍어 주세요.")); };
-    img.src = url;
-  });
+function prod(name){ const n = name === undefined ? $("product").value : name; return products.find(p => p.name === n) || products[0]; }
+function sideVal(){ const r = document.querySelector('input[name=side]:checked'); return r ? r.value : ""; }
+
+function renderProducts(){
+  const sel = $("product"), keep = sel.value;
+  sel.textContent = "";
+  products.forEach(p => { const o = el("option", "", p.name); o.value = p.name; sel.append(o); });
+  if(products.some(p => p.name === keep)) sel.value = keep;
+  onProductChange();
+  renderFilter();
 }
 
-/** 셀 배경이 빨강/흰색/회색으로 섞여 있어도 글자만 검게 남기는 지역 이진화 */
-function binarize(src){
-  const W = src.width, H = src.height;
-  const s = src.getContext("2d").getImageData(0, 0, W, H).data;
-  const gray = new Float32Array(W*H);
-  for(let i=0, p=0; i<gray.length; i++, p+=4) gray[i] = 0.299*s[p] + 0.587*s[p+1] + 0.114*s[p+2];
-  // 모아레 완화용 3x3 평균
-  const sm = new Float32Array(W*H);
-  for(let y=0; y<H; y++) for(let x=0; x<W; x++){
-    let t=0, c=0;
-    for(let dy=-1; dy<=1; dy++){ const yy=y+dy; if(yy<0||yy>=H) continue;
-      for(let dx=-1; dx<=1; dx++){ const xx=x+dx; if(xx<0||xx>=W) continue; t+=gray[yy*W+xx]; c++; } }
-    sm[y*W+x] = t/c;
-  }
-  // 적분 영상으로 주변 평균
-  const I = new Float64Array((W+1)*(H+1));
-  for(let y=1; y<=H; y++){ let row=0; for(let x=1; x<=W; x++){ row += sm[(y-1)*W+(x-1)]; I[y*(W+1)+x] = I[(y-1)*(W+1)+x] + row; } }
-  const r = Math.max(8, Math.round(Math.min(W,H)/30));
-  const out = document.createElement("canvas"); out.width = W; out.height = H;
-  const octx = out.getContext("2d"); const od = octx.createImageData(W, H); const o = od.data;
-  for(let y=0; y<H; y++){
-    const y0=Math.max(0,y-r), y1=Math.min(H,y+r+1);
-    for(let x=0; x<W; x++){
-      const x0=Math.max(0,x-r), x1=Math.min(W,x+r+1);
-      const m = (I[y1*(W+1)+x1]-I[y0*(W+1)+x1]-I[y1*(W+1)+x0]+I[y0*(W+1)+x0])/((y1-y0)*(x1-x0));
-      const g = sm[y*W+x];
-      const ink = m < 135 ? g > m + 28 : g < m - 28;
-      const p = (y*W+x)*4; const v = ink ? 0 : 255;
-      o[p]=o[p+1]=o[p+2]=v; o[p+3]=255;
-    }
-  }
-  octx.putImageData(od, 0, 0);
-  return out;
+function onProductChange(){
+  const p = prod();
+  $("sideBox").hidden = !p.side;
+  $("pinfo").innerHTML = "";
+  const b1 = el("b", "", "point " + p.points + "개"), b2 = el("b", "", p.lsl + " 이상");
+  $("pinfo").append(b1, " · 기준 ", b2);
+  saveForm();
 }
-
-/** 원본에서 상자 안 빨강 비율 */
-function redRatio(ctx, b){
-  const pad = 4;
-  const x = Math.max(0, b.x0-pad), y = Math.max(0, b.y0-pad);
-  const w = Math.max(1, Math.min(ctx.canvas.width - x, b.x1-b.x0+pad*2)), h = Math.max(1, Math.min(ctx.canvas.height - y, b.y1-b.y0+pad*2));
-  const d = ctx.getImageData(x, y, w, h).data; let red=0, n=0;
-  for(let p=0; p<d.length; p+=4){ n++; if(d[p] > 140 && d[p] - Math.max(d[p+1], d[p+2]) > 60) red++; }
-  return red / n;
-}
-
-/** 표 테두리(긴 가로·세로 선)와 모아레 잡티 제거 */
-function cleanBin(bin){
-  const W = bin.width, H = bin.height, d = bin.getContext("2d").getImageData(0, 0, W, H).data;
-  let ink = new Uint8Array(W*H); for(let i=0; i<W*H; i++) ink[i] = d[i*4] === 0 ? 1 : 0;
-  const kill = new Uint8Array(W*H), hMin = Math.round(W*0.07), vMin = Math.round(H*0.04);
-  // 표 테두리 지우기. 사진의 모아레 때문에 선이 점선처럼 끊기므로 짧은 틈(GAP)은 이어진 것으로 보고,
-  // 1px 기울어진 선도 잡도록 옆 칸까지 함께 봄. 선은 잉크가 촘촘(80% 이상)하고 글자보다 훨씬 김
-  const GAP = 8;
-  const scan = (len, n, at, mark, minLen) => {
-    for(let a=0; a<n; a++){
-      let s = -1, last = -1, cnt = 0;
-      const flush = () => { if(s >= 0 && last - s + 1 >= minLen && cnt >= (last - s + 1) * 0.9) for(let b=s; b<=last; b++) mark(a, b); };
-      for(let b=0; b<len; b++){
-        if(at(a, b)){ if(s < 0 || b - last > GAP){ flush(); s = b; cnt = 0; } last = b; cnt++; }
-      }
-      flush();
-    }
-  };
-  const inkAt = (x, y) => x >= 0 && x < W && ink[y*W+x];
-  scan(W, H, (y, x) => inkAt(x, y) || (y > 0 && inkAt(x, y-1)) || (y < H-1 && inkAt(x, y+1)),
-    (y, x) => { kill[y*W+x] = 1; }, hMin);
-  scan(H, W, (x, y) => inkAt(x, y) || inkAt(x-1, y) || inkAt(x+1, y),
-    (x, y) => { kill[y*W+x] = 1; }, vMin);
-  for(let i=0; i<W*H; i++) if(kill[i]) ink[i]=0;
-  for(let pass=0; pass<2; pass++){
-    const n = new Uint8Array(W*H);
-    for(let y=1; y<H-1; y++) for(let x=1; x<W-1; x++){ const i=y*W+x; if(!ink[i]) continue; let c=0; for(let dy=-1; dy<=1; dy++) for(let dx=-1; dx<=1; dx++) c += ink[i+dy*W+dx]; n[i] = c >= 4 ? 1 : 0; }
-    ink = n;
-  }
-  const lab = new Int32Array(W*H); let id = 0;
-  for(let i=0; i<W*H; i++){
-    if(!ink[i] || lab[i]) continue; id++; const pts = [i], st = [i]; lab[i] = id;
-    while(st.length){ const p = st.pop(); const x = p % W;
-      for(const q of [p-1, p+1, p-W, p+W]){ if(q<0 || q>=W*H || Math.abs((q % W) - x) > 1) continue; if(ink[q] && !lab[q]){ lab[q]=id; st.push(q); pts.push(q); } } }
-    if(pts.length < 20) for(const p of pts) ink[p] = 0;
-  }
-  const out = document.createElement("canvas"); out.width = W; out.height = H;
-  const oc = out.getContext("2d", { willReadFrequently: true }); const od = oc.createImageData(W, H);
-  for(let i=0; i<W*H; i++){ const v = ink[i] ? 0 : 255; od.data[i*4]=od.data[i*4+1]=od.data[i*4+2]=v; od.data[i*4+3]=255; }
-  oc.putImageData(od, 0, 0); return out;
-}
-
-/** 글자 줄(행)과 줄 안의 덩어리(셀)를 나눔 */
-function segment(cl){
-  const W = cl.width, H = cl.height, d = cl.getContext("2d").getImageData(0, 0, W, H).data;
-  const ink = (x, y) => d[(y*W+x)*4] === 0;
-  // 줄 나누기는 값 칸 쪽(오른쪽 70%)만 봄: 왼쪽 각도 라벨 칸의 얼룩이 위아래 줄을 이어 붙이는 것을 막음
-  const xL = Math.round(W*0.3);
-  const rowSum = new Int32Array(H); for(let y=0; y<H; y++){ let s=0; for(let x=xL; x<W; x++) if(ink(x,y)) s++; rowSum[y]=s; }
-  const bands = []; let s = -1;
-  for(let y=0; y<=H; y++){ const on = y<H && rowSum[y] > 2; if(on && s<0) s=y; if(!on && s>=0){ if(y-s >= 15) bands.push([s,y]); s=-1; } }
-  return bands.map(([y0, y1]) => {
-    const bh = y1 - y0, col = new Int32Array(W);
-    for(let x=0; x<W; x++){ let c=0; for(let y=y0; y<y1; y++) if(ink(x,y)) c++; col[x]=c; }
-    const gap = Math.max(10, Math.round(bh*0.45)), segs = []; let a=-1, last=-1;
-    for(let x=0; x<W; x++){ if(col[x] > 0){ if(a<0) a=x; else if(x-last > gap){ segs.push([a, last+1]); a=x; } last=x; } }
-    if(a >= 0) segs.push([a, last+1]);
-    return { y0, y1, segs };
-  });
-}
-
-/* 판독 엔진(약 7MB, 처음 한 번만 받음). jsDelivr가 막히면 unpkg에서 다시 받음 */
-const OCR_SOURCES = [
-  {},
-  { workerPath: "https://unpkg.com/tesseract.js@5.1.1/dist/worker.min.js",
-    corePath: "https://unpkg.com/tesseract.js-core@5.1.1",
-    langPath: "https://unpkg.com/@tesseract.js-data/eng@1.0.0/4.0.0_best_int" },
-];
-let workerP = null;
-function ocrStatus(st){ if(typeof setOcrStatus === "function") setOcrStatus(st); }
-function withTimeout(p, ms){ return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]); }
-function getWorker(){
-  if(worker) return Promise.resolve(worker);
-  if(workerP) return workerP;
-  ocrStatus("loading");
-  workerP = (async () => {
-    if(typeof Tesseract === "undefined") throw new Error("ocr_load");
-    for(const src of OCR_SOURCES){
-      try{
-        worker = await withTimeout(Tesseract.createWorker("eng", 1, { ...src, errorHandler: () => {} }), 90000);
-        ocrStatus("ready");
-        return worker;
-      }catch(e){ worker = null; }
-    }
-    throw new Error("ocr_load");
-  })();
-  workerP.catch(() => { workerP = null; ocrStatus("failed"); });
-  return workerP;
-}
-
-async function cropOCR(cl, x0, y0, x1, y1, whitelist, sc = 1.5, psm = "7"){
-  const pad = 12, c = document.createElement("canvas");
-  c.width = Math.round((x1-x0+pad*2)*sc); c.height = Math.round((y1-y0+pad*2)*sc);
-  const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
-  g.drawImage(cl, x0, y0, x1-x0, y1-y0, pad*sc, pad*sc, (x1-x0)*sc, (y1-y0)*sc);
-  const w = await getWorker();
-  await w.setParameters({ tessedit_char_whitelist: whitelist, tessedit_pageseg_mode: psm });
-  const { data } = await w.recognize(c);
-  return data.text.trim();
-}
-
-/** 셀 하나: 마이너스는 모양으로 직접 찾고, 숫자만 문자인식. 소수점은 항상 둘째 자리 */
-async function readValue(cl, seg, band){
-  const x0 = seg[0], x1 = seg[1], y0 = band.y0, w = x1-x0, h = band.y1-band.y0;
-  const d = cl.getContext("2d").getImageData(x0, y0, w, h).data;
-  const ink = (x, y) => d[(y*w+x)*4] === 0;
-  const rows = []; for(let y=0; y<h; y++){ let c=0; for(let x=0; x<w; x++) if(ink(x,y)) c++; rows.push(c); }
-  // 칸 안의 잉크 덩어리(세로 구간)들 중에서 글자 구간 고르기:
-  // 줄의 보통 글자 높이(tH)와 비슷하고, 가로로 가장 넓게 퍼진 것 (숫자는 넓고, 표 모서리 조각은 좁음).
-  // 사진이 기울면 칸마다 글자 높이 위치가 달라서, 줄 전체에 같은 높이 범위를 쓰지 않음
-  const runs = []; let s = -1;
-  for(let y=0; y<=h; y++){ const on = y<h && rows[y] > 0; if(on && s<0) s=y; if(!on && s>=0){ runs.push([s, y]); s=-1; } }
-  const spread = r => { let n = 0; for(let x=0; x<w; x++){ for(let y=r[0]; y<r[1]; y++) if(ink(x,y)){ n++; break; } } return n; };
-  const tH = band.tH || 0;
-  const fit = tH ? runs.filter(r => r[1]-r[0] >= tH*0.6 && r[1]-r[0] <= tH*1.5) : [];
-  let best = [0, -1], bestS = -1;
-  for(const r of (fit.length ? fit : runs)){ const sc = spread(r); if(sc > bestS){ bestS = sc; best = r; } }
-  const top = best[0], bot = best[1]-1, th = bot-top+1;
-  if(th < 8) return null;
-  let run = 0, x = 0;
-  while(x < w){
-    let a=-1, z=-1; for(let y=top; y<=bot; y++) if(ink(x,y)){ if(a<0) a=y; z=y; }
-    if(a < 0){ if(run > 0) break; x++; continue; }
-    const cy = ((a+z)/2 - top)/th;
-    if(z-a+1 <= th*0.25 && cy > 0.3 && cy < 0.76){ run++; x++; } else break;
-  }
-  const neg = run >= th*0.2;
-  const colHas = cx => { for(let y=top; y<=bot; y++) if(ink(cx,y)) return true; return false; };
-  let xs = neg ? x : 0; while(xs < w && !colHas(xs)) xs++;
-  let xe = w-1; while(xe > xs && !colHas(xe)) xe--;
-  let dg = "";
-  for(const [sc, psm] of [[1.5, "7"], [2.4, "8"], [1.0, "13"]]){   // 처음 결과가 이상하면 배율과 읽기 방식을 바꿔 다시
-    dg = (await cropOCR(cl, x0+xs, y0+top, x0+xe+1, y0+bot+1, "0123456789", sc, psm)).replace(/\D/g, "");
-    if(dg.length >= 3 && dg.length <= 4) break;
-  }
-  if(dg.length < 3 || dg.length > 4) return null;
-  return Number(dg.slice(0,-2) + "." + dg.slice(-2)) * (neg ? -1 : 1);
-}
-
-/** 원본 사진의 한 영역을 잘라 긴 변 target px 캔버스로 (작게 찍힌 화면은 키워서) */
-function cropCanvas(img, sx, sy, sw, sh, target){
-  const scale = Math.min(3, target / Math.max(sw, sh));
-  const c = document.createElement("canvas");
-  c.width = Math.max(1, Math.round(sw*scale)); c.height = Math.max(1, Math.round(sh*scale));
-  const g = c.getContext("2d", { willReadFrequently: true });
-  g.imageSmoothingQuality = "high";
-  g.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
-  return c;
-}
-
-/** 사진 안에서 표(흰 칸·빨간 칸이 모인 곳)를 찾아 원본 좌표 상자로. 못 찾으면 null */
-function findTableBox(img){
-  const W0 = img.naturalWidth, H0 = img.naturalHeight, k = 600 / Math.max(W0, H0);
-  const c = cropCanvas(img, 0, 0, W0, H0, 600), W = c.width, H = c.height;
-  const d = c.getContext("2d").getImageData(0, 0, W, H).data;
-  const G = 6, gw = Math.ceil(W / G), gh = Math.ceil(H / G), on = new Uint8Array(gw*gh);
-  for(let gy = 0; gy < gh; gy++) for(let gx = 0; gx < gw; gx++){
-    let n = 0, hit = 0;
-    for(let y = gy*G; y < Math.min(H, gy*G+G); y++) for(let x = gx*G; x < Math.min(W, gx*G+G); x++){
-      const p = (y*W+x)*4, r = d[p], g = d[p+1], b = d[p+2], mx = Math.max(r,g,b), mn = Math.min(r,g,b);
-      const white = mn > 150 && mx - mn < 45, red = r > 140 && r - Math.max(g,b) > 60;
-      n++; if(white || red) hit++;
-    }
-    on[gy*gw+gx] = hit / n > 0.4 ? 1 : 0;
-  }
-  // 칸이 모인 덩어리 중 사진 가장자리에 닿지 않는 가장 큰 것
-  const lab = new Int32Array(gw*gh); let best = null, id = 0;
-  for(let i = 0; i < gw*gh; i++){
-    if(!on[i] || lab[i]) continue; id++;
-    let minx = 1e9, miny = 1e9, maxx = -1, maxy = -1, cnt = 0, edge = false; const st = [i]; lab[i] = id;
-    while(st.length){
-      const p = st.pop(), x = p % gw, y = (p / gw) | 0; cnt++;
-      if(x < minx) minx = x; if(x > maxx) maxx = x; if(y < miny) miny = y; if(y > maxy) maxy = y;
-      if(x === 0 || y === 0 || x === gw-1 || y === gh-1) edge = true;
-      for(const q of [p-1, p+1, p-gw, p+gw]){ if(q < 0 || q >= gw*gh || Math.abs((q % gw) - x) > 1) continue; if(on[q] && !lab[q]){ lab[q] = id; st.push(q); } }
-    }
-    const score = cnt * (edge ? 0.3 : 1);
-    if(cnt >= 12 && (!best || score > best.score)) best = { score, minx, miny, maxx, maxy };
-  }
-  if(!best) return null;
-  let x0 = best.minx*G, y0 = best.miny*G, x1 = (best.maxx+1)*G, y1 = (best.maxy+1)*G;
-  const bw = x1 - x0, bh = y1 - y0;
-  x0 -= bw*0.6; x1 += bw*0.08; y0 -= bh*0.25; y1 += bh*0.06;   // 왼쪽 각도 라벨·위쪽 머리줄까지 포함
-  x0 = Math.max(0, x0); y0 = Math.max(0, y0); x1 = Math.min(W, x1); y1 = Math.min(H, y1);
-  return { x: x0/k, y: y0/k, w: (x1-x0)/k, h: (y1-y0)/k };
-}
-
-/** #(절대값) 화면이면 L*·a*·b*라서 검산이 대부분 크게 어긋남 */
-function looksAbsolute(rows){
-  const full = rows.filter(r => [r.dE, r.dL, r.da, r.db].every(v => v !== null && v !== undefined));
-  const off = full.filter(r => Math.abs(Math.sqrt(r.dL**2 + r.da**2 + r.db**2) - r.dE) > 0.3);
-  // Δ 화면도 dC·dh 칸이 있어 칸 수로는 구분이 안 됨. # 화면이면 L*·a*·b*·C*라 검산이 크게 어긋남
-  return full.length >= 3 && off.length >= Math.ceil(full.length * 0.6);
-}
-
-/** 같은 각도 줄끼리 합치기: 검산이 맞는 줄을 우선, 아니면 빈 칸을 다른 쪽 값으로 채움 */
-function rowOk(r){ return r && [r.dE, r.dL, r.da, r.db].every(v => v !== null && v !== undefined) && Math.abs(Math.sqrt(r.dL**2 + r.da**2 + r.db**2) - r.dE) <= 0.02; }
-function mergeRows(a, b){
-  const angles = ORDER.filter(x => a.some(r => r.angle === x) || b.some(r => r.angle === x));
-  return angles.map(angle => {
-    const ra = a.find(r => r.angle === angle), rb = b.find(r => r.angle === angle);
-    if(!ra) return rb; if(!rb) return ra;
-    if(rowOk(ra)) return ra; if(rowOk(rb)) return rb;
-    const m = { ...ra };
-    ["dE", "dL", "da", "db"].forEach(k => { if(m[k] === null || m[k] === undefined) m[k] = rb[k]; });
-    return m;
-  });
-}
-
-async function ocr(file){
-  const { img, url } = await loadImage(file);
-  let rows = await readTable(cropCanvas(img, 0, 0, img.naturalWidth, img.naturalHeight, 2000));
-  // 표 부분만 잘라 원본 화질로 한 번 더 읽고 합침 (멀리서 찍었거나 칸을 놓친 경우 대비)
-  if(rows.length < ORDER.length || !rows.every(rowOk)){
-    const box = findTableBox(img);
-    if(box && box.w * box.h < img.naturalWidth * img.naturalHeight * 0.85){
-      $("busyText").textContent = (typeof batch !== "undefined" && batch ? batchLabel() + " · " : "") + "한 번 더 확인하는 중…";
-      const r2 = await readTable(cropCanvas(img, box.x, box.y, box.w, box.h, 1600));
-      rows = mergeRows(rows, r2);
-    }
-  }
-  return { rows, img: url, absolute: looksAbsolute(rows), size: img.naturalWidth + "×" + img.naturalHeight };
-}
-
-/** 사진 중 보이는 부분(원본 좌표)만 다시 읽기 */
-async function ocrRegion(src, box){
-  const img = await loadImg(src);
-  return readTable(cropCanvas(img, box.x, box.y, box.w, box.h, 1600));
-}
-
-async function readTable(c){
-  const ctx = c.getContext("2d", { willReadFrequently: true });
-  const cl = cleanBin(binarize(c));
-  await getWorker();
-  $("busyText").textContent = (typeof batch !== "undefined" && batch ? batchLabel() + " · " : "") + "숫자를 읽는 중…";
-  const minW = cl.width*0.05, found = [];
-  let wideRows = 0;   // 값 칸이 5개 이상인 줄 = # 화면(L* a* b* C* h)일 가능성
-  // 1) 데이터 줄 고르기: 라벨 = 앞쪽 두 덩어리 중 더 넓은 것(각도 글자가 숫자 칸보다 넓음, 왼쪽 테두리 잡티 대비)
-  const rowsInfo = [];
-  for(const band of segment(cl)){
-    const bh = band.y1 - band.y0;
-    const segs = band.segs.filter(s => s[1]-s[0] >= Math.min(minW, bh * 0.9));
-    if(segs.length < 4) continue;
-    if(segs.length >= 6) wideRows++;
-    const li = segs.length > 4 && (segs[1][1]-segs[1][0]) > (segs[0][1]-segs[0][0]) ? 1 : 0;
-    if(segs.length - li < 4) continue;
-    rowsInfo.push({ band, labelSeg: segs[li], vals: segs.slice(li + 1) });
-  }
-  // 2) dE·dL·da·db 칸의 가로 위치를 줄들에서 모아 정함 (가운데값). 한 칸을 놓쳐도 옆 값이 밀려 들어가지 않게
-  const med = a => { const b = a.slice().sort((x, y) => x - y); return b.length ? b[b.length >> 1] : 0; };
-  const mid = sg => (sg[0] + sg[1]) / 2, wid = sg => sg[1] - sg[0];
-  const full = rowsInfo.filter(r => r.vals.length >= 4);
-  const typW = med(full.flatMap(r => r.vals.slice(0, 4).map(wid)));
-  const good = full.filter(r => r.vals.slice(0, 4).every(sg => wid(sg) < typW * 1.5));
-  const base = good.length ? good : full;
-  const colX = base.length ? [0, 1, 2, 3].map(k => med(base.map(r => mid(r.vals[k])))) : null;
-  const pitch = colX ? med([colX[1]-colX[0], colX[2]-colX[1], colX[3]-colX[2]]) : 0;
-
-  const cellRun = (sg, band) => {
-    const w = sg[1] - sg[0], h = band.y1 - band.y0, d = cl.getContext("2d").getImageData(sg[0], band.y0, w, h).data;
-    let best = null, st = -1;
-    for(let y = 0; y <= h; y++){
-      let on = false; if(y < h) for(let x = 0; x < w; x++) if(d[(y*w+x)*4] === 0){ on = true; break; }
-      if(on && st < 0) st = y;
-      if(!on && st >= 0){ if(!best || y - st > best[1] - best[0]) best = [st, y]; st = -1; }
-    }
-    return best;
-  };
-  for(const r of rowsInfo){
-    const runs = r.vals.slice(0, 6).map(sg => cellRun(sg, r.band)).filter(Boolean);
-    if(runs.length >= 3) r.band.tH = med(runs.map(x => x[1] - x[0]));
-  }
-  for(const { band, labelSeg, vals: vsegs } of rowsInfo){
-    let cells;
-    if(colX && pitch > 0){
-      // 각 칸 범위(가운데 ± 반 칸)에 걸치는 덩어리를 그 칸에 넣음. 두 칸에 걸친 덩어리는 칸 경계에서 잘라 각각 읽음
-      cells = colX.map(cx => {
-        const lo = cx - pitch / 2, hi = cx + pitch / 2;
-        const parts = vsegs.filter(sg => Math.min(sg[1], hi) - Math.max(sg[0], lo) > Math.min(wid(sg), pitch) * 0.35);
-        if(!parts.length) return null;
-        return [Math.max(lo, Math.min(...parts.map(sg => sg[0]))), Math.min(hi, Math.max(...parts.map(sg => sg[1])))];
-      });
-    } else cells = vsegs.slice(0, 4);
-    const vals = []; for(const sg of cells) vals.push(sg ? await readValue(cl, sg, band) : null);
-    if(vals.filter(v => v !== null).length < 2) continue;
-    const lt = await cropOCR(cl, labelSeg[0], band.y0, labelSeg[1], band.y1, "0123456789-ras");
-    const lm = lt.match(/as(-?\d{2,3})$/);
-    let angle = lm ? "r45as" + lm[1] : null;
-    if(angle && !ORDER.includes(angle)) angle = null;
-    const dEseg = cells[0] || cells.find(Boolean);
-    const box = { x0: dEseg[0], y0: band.y0, x1: dEseg[1], y1: band.y1 };
-    found.push({ angle, y: band.y0, dE: vals[0], dL: vals[1], da: vals[2], db: vals[3],
-      status: redRatio(ctx, box) > 0.25 ? "fail" : "pass" });
-  }
-  // 각도 정하기: 6줄이 다 읽혔으면 화면 순서대로.
-  // 빠진 줄이 있으면 줄 간격으로 각 줄의 자리를 계산하고, 읽힌 라벨과 가장 많이 맞는 위치에 맞춤
-  if(found.length === ORDER.length) found.forEach((r, i) => { r.angle = ORDER[i]; });
-  else if(found.length){
-    const ys = found.map(r => r.y), gaps = ys.slice(1).map((y, i) => y - ys[i]).filter(g => g > 0);
-    const pitch = gaps.length ? Math.min(...gaps) : 1;
-    const idx = ys.map(y => Math.round((y - ys[0]) / pitch));
-    const span = idx[idx.length - 1];
-    let bestO = 0, bestS = -1;
-    for(let o = 0; o + span < ORDER.length; o++){
-      const s = found.reduce((n, r, i) => n + (r.angle === ORDER[idx[i] + o] ? 1 : 0), 0);
-      if(s > bestS){ bestS = s; bestO = o; }
-    }
-    if(span < ORDER.length) found.forEach((r, i) => { r.angle = ORDER[idx[i] + bestO]; });
-    else { const used = new Set(found.map(r => r.angle).filter(Boolean)), left = ORDER.filter(a => !used.has(a)); found.forEach(r => { if(!r.angle) r.angle = left.shift() || "?"; }); }
-  }
-  const out = found.map(({ y, ...r }) => r);
-  out.wideRows = wideRows;
-  return out;
-}
-
-
-/* ---------- 입력 정보 ---------- */
 
 function renderColorHints(){
   const box = $("colorChips"); box.textContent = "";
@@ -767,6 +338,7 @@ function renderColorHints(){
     b.addEventListener("click", () => { $("color").value = code; markColor(); saveForm(); });
     box.append(b);
   });
+  // 목록에 없는 칼라를 직접 쳐서 저장했던 적이 있으면 자동완성에만 보여 줌
   const known = new Set(COLORS.map(c => c[0]));
   const dl = $("colorList"); dl.textContent = "";
   [...new Set(records.map(r => r.color).filter(c => c && !known.has(c)))].sort().forEach(c => { const o = document.createElement("option"); o.value = c; dl.append(o); });
@@ -776,202 +348,124 @@ function markColor(){
   const v = $("color").value.trim().toUpperCase();
   document.querySelectorAll("#colorChips .cc").forEach(b => { const on = b.dataset.code.toUpperCase() === v; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); });
 }
-/* 품명 · 위치 · 측정 포인트 */
-let point = 1;
-function prod(name){ const n = name === undefined ? $("product").value : name; return PRODUCTS.find(p => p.name === n) || PRODUCTS[0]; }
-function sideVal(){ const r = document.querySelector('input[name=side]:checked'); return r ? r.value : ""; }
-function renderProducts(){
-  const sel = $("product"); sel.textContent = "";
-  PRODUCTS.forEach(p => sel.append(Object.assign(el("option", "", p.name), { value: p.name })));
+
+/* 품명 관리 (이 휴대폰에만) */
+let pmEdit = [];
+function openPm(){ pmEdit = products.map(p => ({ ...p })); renderPm(); $("pmCard").hidden = false; $("pmErr").hidden = true; $("pmCard").scrollIntoView({ behavior: "smooth", block: "start" }); }
+function renderPm(){
+  const box = $("pmList"); box.textContent = "";
+  pmEdit.forEach((p, i) => {
+    const row = el("div", "pm-row");
+    const mk = (label, cls, input) => { const l = el("label", "f " + (cls || ""), label); l.append(input); return l; };
+    const nm = el("input"); nm.type = "text"; nm.value = p.name; nm.maxLength = 40; nm.addEventListener("input", () => p.name = nm.value);
+    const pt = el("input"); pt.type = "number"; pt.min = 1; pt.max = MAX_POINTS; pt.inputMode = "numeric"; pt.value = p.points; pt.addEventListener("input", () => p.points = Number(pt.value));
+    const ls = el("input"); ls.type = "number"; ls.step = "0.1"; ls.inputMode = "decimal"; ls.value = p.lsl; ls.addEventListener("input", () => p.lsl = Number(ls.value));
+    const sd = el("input"); sd.type = "checkbox"; sd.checked = !!p.side; sd.addEventListener("change", () => p.side = sd.checked);
+    const del = el("button", "btn small danger pm-del", "삭제"); del.type = "button";
+    del.addEventListener("click", () => { pmEdit.splice(i, 1); renderPm(); });
+    row.append(mk("품명", "pm-name", nm), mk("point 수", "", pt), mk("하한(LSL)", "", ls), mk("LH/RH", "", sd), del);
+    box.append(row);
+  });
 }
-function onProductChange(){
-  const p = prod();
-  $("sideBox").hidden = !p.side;
-  if(point > p.points) point = 1;
-  renderPoints(); saveForm();
-}
-/** 같은 날·품명·칼라·위치로 이미 저장한 포인트에 ✓ (불합격이면 !) */
-function donePoints(){
-  const m = meta(), map = {};
-  records.forEach(r => { if(r.product === m.product && r.date === m.date && r.color === m.color && (r.side || "") === m.side && r.point && !map[r.point]) map[r.point] = keyResult(r); });
-  return map;
-}
-function renderPoints(){
-  const p = prod(), box = $("pointChips"), done = donePoints(); box.textContent = "";
-  for(let i = 1; i <= p.points; i++){
-    const b = el("button", "pc" + (i === point ? " on" : "") + (done[i] ? " done" + (done[i] === "불합격" ? " fail" : "") : ""));
-    b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", i === point);
-    b.setAttribute("aria-label", "Point " + i + (done[i] ? ", 저장됨 " + done[i] : ""));
-    b.append(el("small", "", "Point"), el("b", "", i));
-    b.addEventListener("click", () => { point = i; renderPoints(); saveForm(); });
-    box.append(b);
-  }
-  const n = Object.keys(done).length;
-  $("pointHint").textContent = n ? "· 오늘 " + n + "/" + p.points + " 저장" : "";
-}
-function nextPoint(){
-  const p = prod(), done = donePoints();
-  for(let k = 1; k <= p.points; k++){ const i = (point + k - 1) % p.points + 1; if(!done[i]) return i; }
-  return point;
+function savePm(){
+  const err = m => { $("pmErr").textContent = m; $("pmErr").hidden = false; };
+  const list = pmEdit.map(p => ({ name: String(p.name || "").trim(), points: Math.round(Number(p.points)), side: !!p.side, lsl: Number(p.lsl) }));
+  if(!list.length) return err("품명이 하나 이상 있어야 합니다.");
+  if(list.some(p => !p.name)) return err("비어 있는 품명이 있습니다.");
+  if(new Set(list.map(p => p.name)).size !== list.length) return err("같은 품명이 두 번 있습니다.");
+  if(list.some(p => !(p.points >= 1 && p.points <= MAX_POINTS))) return err("point 수는 1~" + MAX_POINTS + " 사이로 넣어 주세요.");
+  if(list.some(p => !Number.isFinite(p.lsl))) return err("하한(LSL)에 숫자를 넣어 주세요.");
+  products = list; persist(PSTORE, products);
+  $("pmCard").hidden = true; renderProducts(); toast("품명을 저장했습니다");
 }
 
+/* ---------- 입력 정보 ---------- */
+
+let formReady = false;
 function saveForm(){
   if(!formReady) return;
-  persist(FSTORE, { product: $("product").value, side: sideVal(), point, color: $("color").value, sample: $("sampleName").value, note: $("note").value, person: $("person").value });
+  persist(FSTORE, { product: $("product").value, color: $("color").value, side: sideVal(), note: $("note").value, person: $("person").value });
 }
 function restoreForm(){
   const f = load(FSTORE, {}) || {};
-  if(PRODUCTS.some(p => p.name === f.product)) $("product").value = f.product;
+  if(products.some(p => p.name === f.product)) $("product").value = f.product;
+  $("color").value = f.color || ""; $("note").value = f.note || ""; $("person").value = f.person || "";
   document.querySelectorAll('input[name=side]').forEach(r => r.checked = r.value === f.side);
-  point = Number(f.point) || 1;
-  $("color").value = f.color || ""; $("sampleName").value = f.sample || ""; $("note").value = f.note || ""; $("person").value = f.person || load("cm_person", "") || "";
   $("date").value = today();
 }
 function meta(){
   const p = prod();
-  return { product: p.name, side: p.side ? sideVal() : "", point, date: $("date").value, color: $("color").value.trim().toUpperCase(),
-    sample: $("sampleName").value.trim(), note: $("note").value.trim(), person: $("person").value.trim() };
+  return { product: p.name, lsl: p.lsl, date: $("date").value, color: $("color").value.trim().toUpperCase(),
+    side: p.side ? sideVal() : "", note: $("note").value.trim(), person: $("person").value.trim() };
 }
 function checkMeta(){
-  const m = meta();
+  const m = meta(), p = prod();
   if(!m.date) return "측정일자를 넣어 주세요.";
-  if(prod().side && !m.side) return "위치(LH/RH)를 골라 주세요.";
   if(!m.color) return "칼라를 넣어 주세요.";
+  if(p.side && !m.side) return "위치(LH/RH)를 골라 주세요.";
   return "";
 }
 
 /* ---------- 작성 중 측정 ---------- */
 
-const N = ORDER.length * COLS.length;
-function emptyRows(){ return ORDER.map(a => ({ angle: a, dE: null, dL: null, da: null, db: null, status: "pass", auto: {} })); }
-function cellOf(i){ return { r: current.rows[Math.floor(i / 4)], k: COLS[i % 4] }; }
-function hasValues(){ return !!current && current.rows.some(r => COLS.some(k => r[k] !== null)); }
-function saveDraft(){ if(current) persist(DSTORE, { rows: current.rows }); }
-function newDraft(rows, img){
-  if(current && current.img) URL.revokeObjectURL(current.img);
-  current = { rows, img: img || null }; saveDraft();
+function hasValues(){ return !!draft && draft.values.some(v => v !== null); }
+function saveDraft(){ if(draft) persist(DSTORE, { product: draft.product, values: draft.values }); }
+function newDraft(img){
+  const p = prod();
+  if(draft && draft.img) URL.revokeObjectURL(draft.img);
+  draft = { product: p.name, values: Array(p.points).fill(null), img: img || null };
+  saveDraft();
 }
 function discardDraft(){
-  if(current && current.img) URL.revokeObjectURL(current.img);
-  current = null; drop(DSTORE); renderDraftBox();
+  if(draft && draft.img) URL.revokeObjectURL(draft.img);
+  draft = null; drop(DSTORE); renderDraftBox();
 }
 function renderDraftBox(){
   const show = hasValues() && $("entry").hidden;
   $("draftBox").hidden = !show;
-  if(show){ const n = current.rows.reduce((s, r) => s + COLS.filter(k => r[k] !== null).length, 0); $("draftText").textContent = n + "/" + N + "칸 입력"; }
+  if(show){ const n = draft.values.filter(v => v !== null).length; $("draftText").textContent = draft.product + " · " + n + "/" + draft.values.length + " 입력"; }
 }
 
-/* ---------- 앨범에서 여러 장: 찍은 시간 순서대로 지금 고른 포인트부터 하나씩 ---------- */
+/* ---------- 사진 ---------- */
 
-let batch = null;   // { items: [{ file, point }], i }
-function onAlbum(fileList){
-  const files = Array.from(fileList || []).sort((a, b) => a.lastModified - b.lastModified);
-  $("album").value = "";
-  if(!files.length) return;
-  if(files.length === 1){ batch = null; onPhoto(files[0]); return; }
-  const p = prod(), room = p.points - point + 1;
-  const items = files.slice(0, room).map((file, j) => ({ file, point: point + j }));
-  batch = { items, i: 0 };
-  if(files.length > room) toast("Point " + point + "~" + p.points + "에 " + room + "장만 넣습니다. 나머지 " + (files.length - room) + "장은 건너뜁니다");
-  runBatch();
-}
-function runBatch(){
-  if(!batch) return;
-  if(batch.i >= batch.items.length){ batch = null; return; }
-  point = batch.items[batch.i].point; saveForm(); renderPoints();
-  onPhoto(batch.items[batch.i].file);
-}
-function batchLabel(){ return batch ? "사진 " + (batch.i + 1) + "/" + batch.items.length : ""; }
-function skipBatchPhoto(){
-  if(!batch) return;
-  discardDraft(); $("entry").hidden = true; document.body.classList.remove("lock");
-  toast("Point " + point + " 사진을 건너뛰었습니다");
-  batch.i++;
-  if(batch.i < batch.items.length) runBatch(); else { batch = null; renderPoints(); }
-}
-
-async function onPhoto(file){
-  showErr(""); $("busy").hidden = false; $("shootBtn").classList.add("off");
-  $("busyText").textContent = batch ? batchLabel() + " 읽는 중… (Point " + point + ")" : "사진을 읽는 중…";
-  let rows = emptyRows(), img = null, read = 0, absolute = false, engineFail = false, size = "";
-  try{
-    if(typeof Tesseract === "undefined") throw new Error("noocr");
-    await getWorker();
-    const res = await ocr(file);
-    img = res.img; absolute = res.absolute; size = res.size || "";
-    read = fillRows(rows, res.rows);
-  }catch(e){
-    engineFail = !!(e && (e.message === "ocr_load" || e.message === "noocr"));
-    if(!img){ try{ img = URL.createObjectURL(file); }catch(_){ img = null; } }
-  }finally{
-    $("busy").hidden = true; $("shootBtn").classList.remove("off"); $("photo").value = ""; $("album").value = "";
-  }
-  if(!img){ showErr("사진을 열지 못했습니다. 다시 찍어 주세요."); return; }
-  applySpec(rows, meta().color);
-  if(autoOn() && read === N && !absolute && !rows.some(badCheck) && !checkMeta()){
-    const p = point, snap = JSON.parse(JSON.stringify(rows));
-    newDraft(rows, img); current.img = null;          // 되돌리기에 쓰려고 사진은 따로 보관
-    const res = doSave({ auto: true });
-    if(res){ setLastAuto({ id: res.rec.id, rows: snap, img, point: p }); showSnack(res.msg); return; }
-    current.img = img;                                 // 저장 실패: 확인 화면으로
-  } else newDraft(rows, img);
-  current.absolute = absolute; current.size = size; openEntry();
-  toast(engineFail ? "사진 판독 기능을 받지 못했습니다. 인터넷(회사 와이파이면 LTE)을 확인해 주세요. 지금은 사진을 보며 직접 입력하세요"
-    : absolute ? "색차계가 # (절대값) 화면 같습니다. 색차계에서 Δ를 누르고 다시 찍어 주세요"
-    : read ? read + "칸을 자동으로 채웠습니다. 사진과 대조해 주세요"
-    : "숫자를 읽지 못했습니다. 사진을 표가 꽉 차게 확대하고 '이 부분 읽기'를 눌러 보세요");
-}
-
-/** 읽은 값을 표에 채움. onlyOpen이면 비었거나 자동으로 채운 칸만 바꿈. 채운 칸 수를 돌려줌 */
-function fillRows(rows, found, onlyOpen){
-  let n = 0;
-  found.forEach(o => {
-    const r = rows.find(x => x.angle === o.angle); if(!r) return;
-    COLS.forEach(k => {
-      if(o[k] === null || o[k] === undefined) return;
-      if(onlyOpen && r[k] !== null && !(r.auto && r.auto[k])) return;
-      r[k] = o[k]; r.auto = r.auto || {}; r.auto[k] = true; n++;
-    });
-    r.status = o.status;
+function loadImage(src){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("이 사진 형식은 열 수 없습니다. 다시 찍어 주세요."));
+    img.src = src;
   });
-  return n;
 }
-
-/** 확대해서 보이는 부분만 다시 읽기 */
-async function readVisible(){
-  if(!current || !current.img) return;
-  const sc = $("phScroll"), im = $("phImg");
-  const nw = im.naturalWidth, nh = im.naturalHeight; if(!nw) return;
-  const Wz = im.clientWidth, Hz = im.clientHeight, s = Math.min(Wz / nw, Hz / nh);
-  const ox = (Wz - nw*s) / 2, oy = (Hz - nh*s) / 2;
-  let x0 = (sc.scrollLeft - ox) / s, y0 = (sc.scrollTop - oy) / s;
-  let x1 = (sc.scrollLeft + sc.clientWidth - ox) / s, y1 = (sc.scrollTop + sc.clientHeight - oy) / s;
-  x0 = Math.max(0, x0); y0 = Math.max(0, y0); x1 = Math.min(nw, x1); y1 = Math.min(nh, y1);
-  if(x1 - x0 < 20 || y1 - y0 < 20) return;
-  const btn = $("readHere"); btn.disabled = true; btn.textContent = "읽는 중…";
+function canvasToUrl(c){
+  return new Promise(res => c.toBlob(b => res(b ? URL.createObjectURL(b) : c.toDataURL("image/jpeg", 0.85)), "image/jpeg", 0.85));
+}
+/** 메모리를 아끼려고 긴 변 2000px로 줄여서 띄움 */
+async function preparePhoto(file){
+  const src = URL.createObjectURL(file);
   try{
-    const found = await ocrRegion(current.img, { x: x0, y: y0, w: x1 - x0, h: y1 - y0 });
-    commitBuf(false);
-    const n = fillRows(current.rows, found, true);
-    current.absolute = looksAbsolute(found);
-    saveDraft(); cur = firstTodo(); renderEntry();
-    toast(current.absolute ? "색차계가 # (절대값) 화면 같습니다. Δ로 바꿔 다시 찍어 주세요"
-      : n ? n + "칸을 읽었습니다. 사진과 대조해 주세요" : "읽지 못했습니다. 표가 화면에 꽉 차게 확대해서 다시 눌러 보세요");
-  }catch(e){ toast("읽지 못했습니다. 다시 눌러 보세요"); }
-  finally{ btn.disabled = false; btn.textContent = "이 부분 읽기"; }
+    const img = await loadImage(src);
+    const s = Math.min(1, 2000 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement("canvas"); c.width = Math.round(img.naturalWidth*s); c.height = Math.round(img.naturalHeight*s);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    return await canvasToUrl(c);
+  } finally { URL.revokeObjectURL(src); }
 }
-
-/* ---------- 사진 확대·회전 ---------- */
-
-function loadImg(src){ return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }); }
 async function rotatePhoto(){
-  if(!current || !current.img) return;
-  const img = await loadImg(current.img);
+  if(!draft || !draft.img) return;
+  const img = await loadImage(draft.img);
   const c = document.createElement("canvas"); c.width = img.naturalHeight; c.height = img.naturalWidth;
   const g = c.getContext("2d"); g.translate(c.width, 0); g.rotate(Math.PI/2); g.drawImage(img, 0, 0);
-  const url = await new Promise(r => c.toBlob(b => r(URL.createObjectURL(b)), "image/jpeg", 0.85));
-  URL.revokeObjectURL(current.img); current.img = url; $("phImg").src = url; setZoom(1);
+  const url = await canvasToUrl(c);
+  URL.revokeObjectURL(draft.img); draft.img = url; $("phImg").src = url; setZoom(1);
 }
+async function onPhoto(file){
+  showErr(""); $("busy").hidden = false; $("shootBtn").classList.add("off");
+  try{ const url = await preparePhoto(file); newDraft(url); openEntry(); }
+  catch(e){ showErr(e && e.message ? e.message : "사진을 열지 못했습니다. 다시 찍어 주세요."); }
+  finally{ $("busy").hidden = true; $("shootBtn").classList.remove("off"); $("photo").value = ""; $("album").value = ""; }
+}
+
+/* 확대: 버튼 또는 두 번 탭. 확대한 뒤에는 손가락으로 밀어서 이동 */
 function setZoom(z, cx, cy){
   const sc = $("phScroll"), img = $("phImg");
   z = Math.max(1, Math.min(5, z));
@@ -993,290 +487,143 @@ $("phScroll").addEventListener("pointerup", e => {
 $("zIn").addEventListener("click", () => setZoom(zoom * 1.5));
 $("zOut").addEventListener("click", () => setZoom(zoom / 1.5));
 $("rot").addEventListener("click", rotatePhoto);
-$("readHere").addEventListener("click", readVisible);
 
-/* ---------- 전체화면 확인·입력 ---------- */
+/* ---------- 전체화면 입력 ---------- */
 
-function firstTodo(){
-  for(let i = 0; i < N; i++){ const { r, k } = cellOf(i); if(r[k] === null) return i; }
-  const bad = current.rows.findIndex(badCheck);
-  return bad >= 0 ? bad * 4 : N;
-}
 function openEntry(){
+  const p = prod(draft.product);
+  $("product").value = p.name; onProductChange();
+  if(draft.values.length !== p.points){ draft.values = Array.from({ length: p.points }, (_, i) => draft.values[i] ?? null); saveDraft(); }
   const m = meta();
-  $("ovTitle").textContent = [m.product, m.side, "Point " + m.point, batchLabel()].filter(Boolean).join(" · ");
-  $("ovSkip").hidden = !batch;
-  $("ovMeta").textContent = [md(m.date), m.color, m.sample, m.note, current.size ? "사진 " + current.size : ""].filter(Boolean).join(" · ") || "ΔE*ab";
-  $("entry").classList.toggle("nophoto", !current.img);
-  if(current.img) $("phImg").src = current.img; else $("phImg").removeAttribute("src");
-  cur = firstTodo(); buf = ""; confirmShown = false; $("ovConfirm").hidden = true;
+  $("ovProduct").textContent = p.name;
+  $("ovMeta").textContent = [md(m.date), m.color, m.side, m.note].filter(Boolean).join(" · ") + "  |  기준 " + p.lsl + " 이상";
+  $("entry").classList.toggle("nophoto", !draft.img);
+  if(draft.img) $("phImg").src = draft.img; else $("phImg").removeAttribute("src");
+  const first = draft.values.findIndex(v => v === null);
+  cur = first < 0 ? draft.values.length : first; buf = ""; confirmShown = false; $("ovConfirm").hidden = true;
   $("entry").hidden = false; document.body.classList.add("lock");
   $("pendingBox").hidden = true; $("draftBox").hidden = true;
   zoom = 1; requestAnimationFrame(() => setZoom(1));
   renderEntry();
 }
 function closeEntry(){
-  if(batch){
-    const left = batch.items.length - batch.i - 1;
-    if(left > 0) toast("남은 사진 " + left + "장은 건너뛰었습니다. 앨범에서 다시 고를 수 있습니다");
-    batch = null;
-  }
-  commitBuf(false); saveDraft();
   $("entry").hidden = true; document.body.classList.remove("lock");
   if(!hasValues()) discardDraft();
   renderDraftBox();
 }
 
-/** 입력 중 표시: 점이 없으면 첫 자리 뒤에 점 (2 → "2.", 23 → "2.3") */
-function preview(b){
-  const neg = b[0] === "-", s = neg ? b.slice(1) : b;
-  const t = s.includes(".") ? s : (s ? s[0] + "." + s.slice(1) : "");
-  return (neg ? "−" : "") + (t || "");
-}
 function renderEntry(){
-  applySpec(current.rows, meta().color);
-  const g = $("grid"); g.textContent = "";
-  g.append(el("span", "gh", "각도"), ...COLS.map(k => el("span", "gh", k)));
-  current.rows.forEach((r, ri) => {
-    const lab = el("button", "lab " + r.status + (KEY.includes(r.angle) ? " key" : "") + (r.status === "fail" ? " fail" : ""));
-    lab.type = "button";
-    lab.append(el("b", "", short(r.angle)));
-    const s = el("small", "", (r.status === "fail" ? "불합격" : "합격") + (r.spec !== null && r.spec !== undefined ? " ≤" + r.spec.toFixed(2) : ""));
-    if(badCheck(r)) s.append(el("span", "chk", " ⚠"));
-    lab.append(s);
-    const bySpec = r.spec !== null && r.spec !== undefined;
-    lab.setAttribute("aria-label", short(r.angle) + " " + (r.status === "fail" ? "불합격" : "합격") + (bySpec ? ", 부품 기준 " + r.spec.toFixed(2) + " 자동 판정" : ", 눌러서 바꾸기"));
-    lab.addEventListener("click", () => {
-      if(bySpec){ toast(short(r.angle) + "는 부품 기준 ΔE " + r.spec.toFixed(2) + "로 자동 판정합니다"); return; }
-      r.status = r.status === "fail" ? "pass" : "fail"; saveDraft(); renderEntry();
-    });
-    g.append(lab);
-    COLS.forEach((k, ci) => {
-      const i = ri * 4 + ci, v = r[k], typing = i === cur && buf;
-      const b = el("button", "cell"); b.type = "button";
-      if(i === cur) b.classList.add("cur");
-      if(typing) b.classList.add("typing");
-      else if(v === null) b.classList.add("empty");
-      else if(r.auto && r.auto[k]) b.classList.add("auto");
-      if(r.status === "fail") b.classList.add("rowfail");
-      b.textContent = typing ? preview(buf) : (v === null ? "–" : fmt(v).replace("-", "−"));
-      b.setAttribute("aria-label", short(r.angle) + " " + k + " " + (v === null ? "비어 있음" : fmt(v)));
-      b.addEventListener("click", () => { commitBuf(false); cur = i; buf = ""; negArm = false; renderEntry(); });
-      g.append(b);
-    });
+  const p = prod(draft.product), n = draft.values.length, box = $("pts");
+  box.textContent = "";
+  draft.values.forEach((v, i) => {
+    const b = el("button", "pt"); b.type = "button";
+    const typing = i === cur && buf;
+    let shown = typing ? (buf.includes(".") || buf[0] === "1" ? buf : buf + ".") : (v === null ? "–" : f1(v));
+    if(i === cur) b.classList.add("cur");
+    if(typing) b.classList.add("typing");
+    else if(v === null) b.classList.add("empty");
+    else if(isFail(v, p.lsl)) b.classList.add("fail");
+    b.setAttribute("aria-label", "point " + (i+1) + " " + (v === null ? "비어 있음" : f1(v)));
+    b.append(el("small", "", "point." + (i+1)), el("b", "", shown));
+    b.addEventListener("click", () => { commitBuf(false); cur = i; buf = ""; renderEntry(); });
+    box.append(b);
   });
-  const curEl = g.querySelector(".cell.cur"); if(curEl) curEl.scrollIntoView({ block: "nearest" });
-
-  const filled = current.rows.reduce((s, r) => s + COLS.filter(k => r[k] !== null).length, 0);
-  const autoLeft = current.rows.reduce((s, r) => s + COLS.filter(k => r.auto && r.auto[k]).length, 0);
-  const kf = current.rows.filter(r => KEY.includes(r.angle) && r.status === "fail").map(r => short(r.angle));
-  const bad = current.rows.filter(badCheck).map(r => short(r.angle));
+  const curEl = box.children[cur]; if(curEl) curEl.scrollIntoView({ block: "nearest" });
+  const filled = draft.values.filter(v => v !== null).length;
+  const fails = draft.values.map((v, i) => isFail(v, p.lsl) ? "point." + (i+1) : null).filter(Boolean);
   const st = $("ovStat"); st.textContent = "";
-  st.append(el("span", "", "입력 " + filled + "/" + N));
-  if(kf.length) st.append(el("span", "pill fail", "핵심 불합격 " + kf.join(", ")));
-  else if(filled) st.append(el("span", "pill pass", "핵심 각도 합격"));
-  if(current.absolute) st.append(el("span", "pill fail", "# 화면 같음 · 색차계에서 Δ로 바꿔 다시 찍으세요"));
-  if(bad.length) st.append(el("span", "pill warn", "검산 ⚠ " + bad.join(", ")));
-  if(autoLeft) st.append(el("span", "", "점선 칸은 자동으로 읽은 값입니다. 부호까지 사진과 대조하세요."));
-  else if(cur >= N) st.append(el("span", "done", filled === N ? "모두 입력했습니다. 저장을 누르세요." : "끝까지 왔습니다. 빈 칸을 눌러 채우거나 저장하세요."));
-  else st.append(el("span", "", "2 3 3 → 2.33 · 음수는 +/−"));
-  $("saveKey").classList.toggle("ready", filled === N);
+  st.append(el("span", "", "입력 " + filled + "/" + n));
+  if(fails.length) st.append(el("span", "pill fail", "기준 미만 " + fails.length + "개: " + fails.join(", ")));
+  if(filled === n && !fails.length) st.append(el("span", "pill pass", "모두 " + p.lsl + " 이상"));
+  if(cur >= n) st.append(el("span", "done", filled === n ? "모두 입력했습니다. 저장을 누르세요." : "끝까지 왔습니다. 빈 칸을 눌러 채우거나 저장하세요."));
+  else st.append(el("span", "", "· 7 4 를 누르면 7.4로 들어갑니다"));
+  $("saveKey").classList.toggle("ready", filled === n);
 }
 
-function setVal(i, v){ const { r, k } = cellOf(i); r[k] = v === null ? null : Math.round(v * 100) / 100; if(r.auto) delete r.auto[k]; }
-function nextEmpty(from){ for(let i = from; i < N; i++){ const { r, k } = cellOf(i); if(r[k] === null) return i; } return N; }
-function commitVal(v){ setVal(cur, v); buf = ""; cur = cur + 1 < N ? (nextEmpty(cur + 1) < N ? nextEmpty(cur + 1) : cur + 1) : N; confirmShown = false; $("ovConfirm").hidden = true; }
-function bufNumber(b){
-  const neg = b[0] === "-", s = neg ? b.slice(1) : b;
-  if(!s || s === ".") return null;
-  const n = s.includes(".") ? Number(s.replace(/\.$/, "")) : Number(s[0] + "." + (s.slice(1) || "0"));
-  return Number.isFinite(n) ? (neg ? -n : n) : null;
+function nextEmpty(from){
+  for(let i = from; i < draft.values.length; i++) if(draft.values[i] === null) return i;
+  return draft.values.length;
 }
-/* 소수 둘째 자리 고정: 숫자 세 개(2,3,3)면 2.33으로 자동 확정. 10 이상은 점을 직접 누름(1,2,.,3,4) */
+function commitVal(v){
+  draft.values[cur] = Math.round(v*10)/10; buf = "";
+  cur = nextEmpty(cur + 1);
+  confirmShown = false; $("ovConfirm").hidden = true;
+}
+/* 소수 한 자리 고정: 두 자리(7,4)면 7.4로 자동 확정. 1로 시작하면 10.x로 보고 세 자리를 기다림 */
 function tryCommit(){
-  const s = buf.replace(/^-/, "");
-  if(s.includes(".")){ if(s.split(".")[1].length >= 2) commitVal(bufNumber(buf)); }
-  else if(s.length === 3) commitVal(bufNumber(buf));
+  if(buf.includes(".")){ const [a, b] = buf.split("."); if(b.length >= 1) commitVal(Number((a || "0") + "." + b[0])); }
+  else if(buf.length === 2 && buf[0] !== "1") commitVal(Number(buf[0] + "." + buf[1]));
+  else if(buf.length === 3) commitVal(Number(buf.slice(0,2) + "." + buf[2]));
 }
+/** 덜 입력된 값(예: "7", "7.")은 7.0으로 확정 */
 function commitBuf(advance = true){
   if(!buf) return;
-  const n = bufNumber(buf);
-  if(n === null){ buf = ""; return; }
-  if(advance) commitVal(n); else { setVal(cur, n); buf = ""; }
+  const n = Number(buf.replace(/\.$/, ""));
+  if(Number.isFinite(n)){
+    if(advance) commitVal(n); else { draft.values[cur] = Math.round(n*10)/10; buf = ""; }
+  } else buf = "";
 }
 
-/* +/− 다음에 바로 숫자를 치면 음수로 새로 입력 (값이 있던 칸도 마찬가지) */
-let negArm = false;
 function press(k){
-  if(!current) return;
-  const arm = negArm; negArm = false;
-  if(/^\d$/.test(k)){ if(cur >= N) return; if(!buf && arm) buf = "-"; buf += k; tryCommit(); }
-  else if(k === "."){
-    if(cur >= N) return;
-    const s = buf.replace(/^-/, "");
-    if(!s.includes(".")) buf = (buf[0] === "-" ? "-" : "") + (s || "0") + ".";
-  }
-  else if(k === "neg"){
-    if(cur >= N) return;
-    if(buf) buf = buf[0] === "-" ? buf.slice(1) : "-" + buf;
-    else { const { r, k: c } = cellOf(cur); if(r[c] !== null){ setVal(cur, -r[c]); negArm = true; } else buf = "-"; }
-  }
+  if(!draft) return;
+  const n = draft.values.length;
+  if(/^\d$/.test(k)){ if(cur >= n) return; buf += k; tryCommit(); }
+  else if(k === "."){ if(cur >= n) return; if(!buf.includes(".")) buf = (buf || "0") + "."; }
   else if(k === "back"){
-    const cell = cur < N ? cellOf(cur) : null;
     if(buf) buf = buf.slice(0, -1);
-    else if(cell && cell.r[cell.k] !== null) setVal(cur, null);
-    else if(cur > 0){ cur--; setVal(cur, null); }
+    else if(cur < n && draft.values[cur] !== null) draft.values[cur] = null;
+    else if(cur > 0){ cur--; draft.values[cur] = null; }
   }
   else if(k === "prev"){ commitBuf(false); if(cur > 0) cur--; }
-  else if(k === "next"){ commitBuf(false); if(cur < N) cur++; }
+  else if(k === "next"){ commitBuf(false); if(cur < n) cur++; }
+  else if(k === "clear"){ buf = ""; if(cur < n) draft.values[cur] = null; }
   else if(k === "save"){ commitBuf(false); saveDraft(); renderEntry(); trySave(); return; }
   saveDraft(); renderEntry();
 }
 $("pad").addEventListener("click", e => { const b = e.target.closest("button[data-k]"); if(b) press(b.dataset.k); });
 document.addEventListener("keydown", e => {
   if($("entry").hidden || e.ctrlKey || e.metaKey || e.altKey) return;
-  const map = { Backspace: "back", Enter: "next", ArrowRight: "next", ArrowLeft: "prev", Tab: "next", "-": "neg", ".": ".", ",": "." };
+  const map = { Backspace: "back", Enter: "next", ArrowRight: "next", ArrowLeft: "prev", Tab: "next", Delete: "clear", ".": ".", ",": "." };
   const k = /^\d$/.test(e.key) ? e.key : map[e.key];
   if(k){ e.preventDefault(); press(k); }
   else if(e.key === "Escape") closeEntry();
 });
 
 function trySave(){
-  const filled = current.rows.reduce((s, r) => s + COLS.filter(k => r[k] !== null).length, 0);
-  if(!filled){ toast("입력한 값이 없습니다"); return; }
-  if(!confirmShown){
-    const missing = current.rows.filter(r => COLS.some(k => r[k] === null)).map(r => short(r.angle));
-    const bad = current.rows.filter(badCheck).map(r => short(r.angle));
-    const msg = [];
-    if(missing.length) msg.push(missing.join(", ") + "에 빈 칸이 있습니다.");
-    if(bad.length) msg.push(bad.join(", ") + "는 검산이 맞지 않습니다.");
-    if(msg.length){ confirmShown = true; $("ovConfirmText").textContent = msg.join(" ") + " 그대로 저장할까요?"; $("ovConfirm").hidden = false; return; }
+  const missing = draft.values.map((v, i) => v === null ? i+1 : 0).filter(Boolean);
+  if(missing.length === draft.values.length){ toast("입력한 값이 없습니다"); return; }
+  if(missing.length && !confirmShown){
+    confirmShown = true;
+    $("ovConfirmText").textContent = "point " + missing.join(", ") + " 이(가) 비어 있습니다. 비운 채로 저장할까요?";
+    $("ovConfirm").hidden = false; return;
   }
   doSave();
 }
-function doSave(opts){
-  const auto = !!(opts && opts.auto && opts.auto === true);
-  const say = msg => { if(auto) return { rec: records[0], msg }; toast(msg); return { rec: records[0], msg }; };
-  const e = checkMeta(); if(e){ toast(e); return null; }
+
+function doSave(){
+  const e = checkMeta(); if(e){ toast(e); return; }
   const m = meta();
-  applySpec(current.rows, m.color);
-  const rows = current.rows.filter(r => COLS.some(k => r[k] !== null)).map(({ angle, dE, dL, da, db, status }) => ({ angle, dE, dL, da, db, status }));
-  const rec = { id: Date.now().toString(36) + Math.random().toString(36).slice(2,6), time: Date.now(), ...m, rows, sync: SHEET_URL ? "pending" : "off" };
+  const rec = { id: Date.now().toString(36) + Math.random().toString(36).slice(2,6), time: Date.now(), ...m,
+    values: draft.values.slice(), sync: SHEET_URL ? "pending" : "off" };
   records.unshift(rec);
-  if(!persist(STORE, records)){ records.shift(); toast("저장하지 못했습니다. 시크릿 모드라면 일반 모드로 열어 주세요."); return null; }
-  persist("cm_person", m.person);
-  discardDraft(); $("entry").hidden = true; document.body.classList.remove("lock");
-  if(SHEET_URL) sendToSheet(rec).then(ok => { if(!ok) toast("시트 전송 실패. 기록에서 다시 보낼 수 있습니다"); });
-  if(batch && batch.i + 1 < batch.items.length){
-    batch.i++;
-    renderColorHints(); renderHist();
-    const r = say("Point " + m.point + (auto ? " 자동 저장 · " : " 저장 · ") + keyResult(rec) + " · 다음 사진 (Point " + batch.items[batch.i].point + ")");
-    runBatch();
-    return r;
-  }
-  batch = null;
-  const np = nextPoint(), allDone = np === point && donePoints()[np];
-  point = np; saveForm();
-  renderColorHints(); renderPoints(); renderHist();
-  return say("Point " + m.point + (auto ? " 자동 저장 · " : " 저장 · ") + keyResult(rec) + (allDone ? " · 모든 포인트 완료" : " · 다음 Point " + np));
+  if(!persist(STORE, records)){ records.shift(); toast("저장하지 못했습니다. 시크릿 모드라면 일반 모드로 열어 주세요."); return; }
+  discardDraft(); closeEntry(); renderColorHints(); renderHist();
+  const j = judge(rec);
+  toast((j.fails.length ? "저장했습니다 · 기준 미만 " + j.fails.length + "개" : "저장했습니다") + (SHEET_URL ? " · 시트로 보내는 중…" : ""));
+  if(SHEET_URL) sendToSheet(rec).then(ok => toast(ok ? "시트에 입력했습니다" : "시트 전송 실패. 기록에서 다시 보낼 수 있습니다"));
 }
-
-/* ---------- 앱 카메라: 원본 해상도로 찍기 ----------
-   휴대폰 기본 카메라(파일 선택)로 찍으면 브라우저가 사진을 작게 줄여 넘기는 경우가 많아 인식률이 떨어짐.
-   앱 안에서 카메라를 열고, 되면 ImageCapture.takePhoto()로 센서 원본 해상도 사진을 받음 */
-
-let camStream = null;
-async function openCamera(){
-  if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){ $("photo").click(); return; }
-  try{
-    camStream = await navigator.mediaDevices.getUserMedia({ audio: false,
-      video: { facingMode: { ideal: "environment" }, width: { ideal: 4096 }, height: { ideal: 3072 } } });
-  }catch(e){
-    camStream = null;
-    showErr("앱에서 카메라를 열지 못했습니다. 카메라 권한을 허용하거나, 아래 '휴대폰 기본 카메라로 찍기'를 써 주세요.");
-    return;
-  }
-  const v = $("camVideo"); v.srcObject = camStream;
-  $("cam").hidden = false; document.body.classList.add("lock");
-  try{ await v.play(); }catch(e){}
-  const track = camStream.getVideoTracks()[0];
-  try{
-    const caps = track.getCapabilities ? track.getCapabilities() : {};
-    if(caps.focusMode && caps.focusMode.includes("continuous")) await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
-  }catch(e){}
-  const st = track.getSettings ? track.getSettings() : {};
-  $("camInfo").textContent = st.width && st.height ? "화면 " + st.width + "×" + st.height : "";
-}
-function closeCamera(){
-  if(camStream) camStream.getTracks().forEach(t => t.stop());
-  camStream = null; $("camVideo").srcObject = null;
-  $("cam").hidden = true; document.body.classList.remove("lock");
-}
-async function shoot(){
-  const track = camStream && camStream.getVideoTracks()[0];
-  if(!track) return;
-  const btn = $("camShot"); btn.disabled = true;
-  let blob = null;
-  try{
-    if("ImageCapture" in window){
-      const ic = new ImageCapture(track);
-      let opts = {};
-      try{ const pc = await ic.getPhotoCapabilities(); if(pc && pc.imageWidth && pc.imageWidth.max) opts = { imageWidth: pc.imageWidth.max }; }catch(e){}
-      blob = await ic.takePhoto(opts).catch(() => ic.takePhoto());
-    }
-  }catch(e){ blob = null; }
-  if(!blob){   // takePhoto가 안 되는 브라우저: 지금 화면(영상)을 그대로 저장
-    const v = $("camVideo"), c = document.createElement("canvas");
-    c.width = v.videoWidth; c.height = v.videoHeight;
-    if(c.width && c.height){ c.getContext("2d").drawImage(v, 0, 0); blob = await new Promise(r => c.toBlob(r, "image/jpeg", 0.95)); }
-  }
-  btn.disabled = false; closeCamera();
-  if(!blob){ toast("사진을 찍지 못했습니다. 다시 찍어 주세요"); return; }
-  onPhoto(new File([blob], "camera.jpg", { type: blob.type || "image/jpeg", lastModified: Date.now() }));
-}
-$("camShot").addEventListener("click", shoot);
-$("camClose").addEventListener("click", closeCamera);
-document.addEventListener("visibilitychange", () => { if(document.hidden && camStream) closeCamera(); });
-
-/* ---------- 자동 저장 · 되돌리기 ---------- */
-
-let lastAuto = null;
-function autoOn(){ return $("autoSave").checked; }
-function setLastAuto(a){
-  if(lastAuto && lastAuto.img && (!current || current.img !== lastAuto.img)) URL.revokeObjectURL(lastAuto.img);
-  lastAuto = a;
-}
-function showSnack(msg){
-  $("snackText").textContent = msg; $("snack").hidden = false; $("toast").hidden = true;
-  clearTimeout(showSnack.t); showSnack.t = setTimeout(() => $("snack").hidden = true, 7000);
-}
-function undoAuto(){
-  $("snack").hidden = true;
-  if(!lastAuto) return;
-  const a = lastAuto; lastAuto = null;
-  const rec = records.find(r => r.id === a.id);
-  records = records.filter(r => r.id !== a.id); persist(STORE, records);
-  if(batch){ const left = batch.items.length - batch.i; if(left > 0) toast("남은 사진 " + left + "장은 건너뛰었습니다"); batch = null; }
-  if(!$("entry").hidden){ $("entry").hidden = true; document.body.classList.remove("lock"); }
-  point = a.point; saveForm(); renderPoints(); renderHist(); renderColorHints();
-  newDraft(a.rows, a.img); openEntry();
-  toast(rec && rec.sync === "sent" ? "저장을 취소했습니다. 시트 값은 다시 저장하면 바뀝니다" : "저장을 취소했습니다. 확인하고 저장해 주세요");
-}
-$("ovSaveAnyway").addEventListener("click", () => doSave());
-$("snackUndo").addEventListener("click", undoAuto);
-$("autoSave").addEventListener("change", () => persist("cm_autosave", $("autoSave").checked));
-$("ovKeep").addEventListener("click", () => { $("ovConfirm").hidden = true; cur = firstTodo(); renderEntry(); });
+$("ovSaveAnyway").addEventListener("click", doSave);
+$("ovKeep").addEventListener("click", () => { $("ovConfirm").hidden = true; cur = nextEmpty(0); renderEntry(); });
 $("ovClose").addEventListener("click", closeEntry);
 
 /* ---------- 판정 ---------- */
 
-function keyResult(d){
-  const k = d.rows.filter(r => KEY.includes(r.angle));
-  if(k.length < KEY.length) return "각도 누락";
-  return k.some(r => r.status === "fail") ? "불합격" : "합격";
-}
-function checkWarn(d){
-  return d.rows.filter(r => { const v = calc(r); return r.dE === null || v === null || Math.abs(v - r.dE) > 0.02; }).map(r => r.angle).join(", ");
+function judge(r){
+  const fails = r.values.map((v, i) => isFail(v, r.lsl) ? i+1 : 0).filter(Boolean);
+  const vals = r.values.filter(v => v !== null);
+  const miss = r.values.length - vals.length;
+  return { fails, miss, min: vals.length ? Math.min(...vals) : null,
+    text: fails.length ? "불합격" : miss ? "일부 미입력" : "합격" };
 }
 
 /* ---------- 구글 시트 전송 ---------- */
@@ -1287,14 +634,16 @@ async function sendToSheet(rec){
   sending.add(rec.id); rec.sync = "sending"; renderHist();
   let ok = false;
   try{
+    const j = judge(rec);
     const res = await fetch(SHEET_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ key: SHEET_KEY, id: rec.id, time: rec.time, date: rec.date, product: rec.product, side: rec.side, point: rec.point, color: rec.color, person: rec.person,
-        sample: rec.sample, note: rec.note, keyResult: keyResult(rec), checkWarn: checkWarn(rec), rows: rec.rows })
+      body: JSON.stringify({ key: SHEET_KEY, id: rec.id, time: rec.time, team: TEAM, product: rec.product, lsl: rec.lsl,
+        date: rec.date, color: rec.color, side: rec.side, note: rec.note, person: rec.person, values: rec.values,
+        judge: j.text, failPoints: j.fails.join(","), min: j.min })
     });
-    const j = await res.json();
-    ok = !!(j && j.ok);
+    const d = await res.json();
+    ok = !!(d && d.ok);
   }catch(e){ ok = false; }
   sending.delete(rec.id);
   const r = records.find(x => x.id === rec.id);
@@ -1312,7 +661,7 @@ async function resendAll(){
 
 function renderFilter(){
   const sel = $("filter"), keep = sel.value;
-  const names = [...new Set([...PRODUCTS.map(p => p.name), ...records.map(r => r.product).filter(Boolean)])];
+  const names = [...new Set([...products.map(p => p.name), ...records.map(r => r.product)])];
   sel.textContent = ""; sel.append(Object.assign(el("option", "", "전체 품명"), { value: "" }));
   names.forEach(n => sel.append(Object.assign(el("option", "", n), { value: n })));
   sel.value = names.includes(keep) ? keep : "";
@@ -1324,21 +673,17 @@ function renderHist(){
   $("histBtns").hidden = !records.length;
   renderFilter();
   const list = shown();
-  if(!list.length){ h.append(el("p", "empty", records.length ? "이 품명의 기록이 없습니다." : "아직 저장된 측정이 없습니다. 저장한 측정은 여기에 쌓이고, 엑셀로 내려받거나 공유할 수 있습니다.")); return; }
+  if(!list.length){ h.append(el("p", "empty", records.length ? "이 품명의 기록이 없습니다." : "아직 저장된 측정이 없습니다. 저장한 측정은 여기에 쌓이고, 관리시트 모양의 엑셀로 내려받거나 공유할 수 있습니다.")); return; }
   list.forEach(d => {
-    const kr = keyResult(d), box = el("div", "rec");
+    const j = judge(d), box = el("div", "rec");
     const top = el("div", "rec-top");
-    const nm = el("span", "rec-name", [d.product, d.side, d.point ? "P" + d.point : ""].filter(Boolean).join(" ") || "(품명 없음)");
-    nm.append(el("small", "", [md(d.date || ""), d.color, d.sample].filter(Boolean).join(" ")));
-    top.append(nm, el("span", "pill " + (kr === "불합격" ? "fail" : kr === "합격" ? "pass" : "warn"), kr));
+    const nm = el("span", "rec-name", d.product);
+    nm.append(el("small", "", [md(d.date), d.color, d.side].filter(Boolean).join(" ")));
+    top.append(nm, el("span", "pill " + (j.fails.length ? "fail" : j.miss ? "warn" : "pass"), j.text + (j.fails.length ? " " + j.fails.length : "")));
     box.append(top);
-    const chips = el("div", "kchips");
-    KEY.forEach(k => {
-      const r = d.rows.find(x => x.angle === k), c = el("div", "kchip " + (r ? r.status : ""));
-      c.append(el("small", "", short(k) + " dE"), el("strong", "", r ? fmt(r.dE) : "–"));
-      chips.append(c);
-    });
-    box.append(chips);
+    const vals = el("div", "vals");
+    d.values.forEach((v, i) => { const s = el("span", "v" + (isFail(v, d.lsl) ? " fail" : "")); s.append(el("i", "", i+1), v === null ? "–" : f1(v)); vals.append(s); });
+    box.append(vals);
     const extra = [d.note, d.person].filter(Boolean).join(" · ");
     if(extra) box.append(el("div", "rec-note", extra));
     const act = el("div", "rec-act");
@@ -1363,25 +708,45 @@ function renderHist(){
   });
 }
 
-/* ---------- 엑셀 ---------- */
+/* ---------- 엑셀 (관리시트 모양: 품명·월별 시트, 측정 1건 = 열 1개) ---------- */
 
+function sheetName(s, used){
+  let base = String(s).replace(/[\\\/\?\*\[\]:]/g, "-").slice(0, 31), n = base, i = 2;
+  while(used.has(n)){ const suf = " (" + i++ + ")"; n = base.slice(0, 31 - suf.length) + suf; }
+  used.add(n); return n;
+}
 function buildXlsx(list){
-  const head = ["측정일자","품명","위치","포인트","칼라","시료","비고","측정자","핵심각도판정","검산경고"];
-  ORDER.forEach(a => head.push(a+" dE", a+" dL", a+" da", a+" db", a+" 판정"));
-  head.push("저장시각");
-  const aoa = [head];
-  list.slice().sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (a.product || "").localeCompare(b.product || "") || (a.side || "").localeCompare(b.side || "") || (a.point || 0) - (b.point || 0) || a.time - b.time)).forEach(d => {
-    const row = [d.date || "", d.product || "", d.side || "", d.point ? "Point " + d.point : "", d.color || "", d.sample || "", d.note || "", d.person || "", keyResult(d), checkWarn(d)];
-    ORDER.forEach(a => { const r = d.rows.find(x => x.angle === a); row.push(r ? r.dE : null, r ? r.dL : null, r ? r.da : null, r ? r.db : null, r ? (r.status === "fail" ? "불합격" : "합격") : null); });
-    row.push(new Date(d.time));
-    aoa.push(row);
-  });
-  const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true, dateNF: "yyyy-mm-dd hh:mm" });
-  Object.keys(ws).forEach(k => { if(k[0] !== "!" && ws[k].t === "n") ws[k].z = "0.00"; });
-  ws["!cols"] = head.map((h, i) => ({ wch: i < 10 ? 11 : i === head.length - 1 ? 17 : 8 }));
-  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "측정기록");
-  const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-  return new File([out], "색차측정_" + today() + ".xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const wb = XLSX.utils.book_new(), used = new Set();
+  const asc = list.slice().sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.time - b.time));
+  const groups = new Map();
+  asc.forEach(r => { const k = r.product + "\u0000" + r.date.slice(0, 7); if(!groups.has(k)) groups.set(k, []); groups.get(k).push(r); });
+  for(const [k, rs] of groups){
+    const [name, ym] = k.split("\u0000"), [y, m] = ym.split("-");
+    const n = Math.max(...rs.map(r => r.values.length)), lsl = rs[rs.length-1].lsl;
+    const aoa = [["PAQ 관리시트  ·  품명 " + name + "  ·  " + y + "년 " + Number(m) + "월  ·  관리반 " + TEAM + "  ·  기준 " + lsl + " 이상"], []];
+    aoa.push(["측정일자", ...rs.map(r => md(r.date))]);
+    aoa.push(["칼라", ...rs.map(r => r.color)]);
+    if(rs.some(r => r.side)) aoa.push(["위치", ...rs.map(r => r.side)]);
+    if(rs.some(r => r.note)) aoa.push(["비고", ...rs.map(r => r.note)]);
+    for(let i = 0; i < n; i++) aoa.push(["point." + (i+1), ...rs.map(r => r.values[i] ?? null)]);
+    aoa.push(["판정", ...rs.map(r => judge(r).text)]);
+    aoa.push(["기준 미만", ...rs.map(r => judge(r).fails.map(x => "p" + x).join(","))]);
+    if(rs.some(r => r.person)) aoa.push(["측정자", ...rs.map(r => r.person)]);
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    Object.keys(ws).forEach(k => { if(k[0] !== "!" && ws[k].t === "n") ws[k].z = "0.0"; });
+    ws["!cols"] = [{ wch: 10 }, ...rs.map(() => ({ wch: 7 }))];
+    XLSX.utils.book_append_sheet(wb, ws, sheetName(name + " " + ym, used));
+  }
+  const head = ["측정일자","품명","칼라","위치","비고","측정자","판정","최소값","기준 미만 point","저장시각"];
+  const maxN = Math.max(...asc.map(r => r.values.length));
+  for(let i = 0; i < maxN; i++) head.push("point." + (i+1));
+  const all = [head];
+  asc.forEach(r => { const j = judge(r); all.push([r.date, r.product, r.color, r.side, r.note, r.person, j.text, j.min, j.fails.join(","), new Date(r.time), ...r.values]); });
+  const ws = XLSX.utils.aoa_to_sheet(all, { cellDates: true, dateNF: "yyyy-mm-dd hh:mm" });
+  ws["!cols"] = head.map((h, i) => ({ wch: i === 1 ? 16 : i === 9 ? 16 : i < 10 ? 9 : 7 }));
+  XLSX.utils.book_append_sheet(wb, ws, sheetName("전체기록", used));
+  const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  return new File([buf], "PAQ측정_" + today() + ".xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
 function downloadXlsx(){
   if(typeof XLSX === "undefined"){ toast("엑셀 기능을 불러오지 못했습니다. 인터넷 연결을 확인해 주세요"); return; }
@@ -1395,18 +760,19 @@ async function shareXlsx(){
   const list = shown(); if(!list.length) return;
   const f = buildXlsx(list);
   if(navigator.canShare && navigator.canShare({ files: [f] })){
-    try{ await navigator.share({ files: [f], title: "색차 측정 기록" }); }
+    try{ await navigator.share({ files: [f], title: "PAQ 측정 기록" }); }
     catch(e){ if(e && e.name !== "AbortError") downloadXlsx(); }
   } else { downloadXlsx(); toast("이 기기는 바로 공유가 안 돼서 파일로 내려받았습니다"); }
 }
 
 /* ---------- 시작 ---------- */
 
+let pendingNext = null;
 function begin(kind){
-  if(kind === "photo") openCamera();
-  else if(kind === "phonecam") $("photo").click();
+  // kind: "photo" | "album" | "manual"
+  if(kind === "photo") $("photo").click();
   else if(kind === "album") $("album").click();
-  else { showErr(""); newDraft(emptyRows(), null); openEntry(); }
+  else { showErr(""); newDraft(null); openEntry(); }
 }
 function guard(e, kind){
   const m = checkMeta();
@@ -1415,78 +781,36 @@ function guard(e, kind){
   if(hasValues()){ e && e.preventDefault(); pendingNext = kind; $("pendingBox").hidden = false; $("draftBox").hidden = true; $("pendResume").focus(); return false; }
   return true;
 }
-$("photo").addEventListener("click", e => guard(e, "phonecam"));
-$("shootBtn").addEventListener("click", () => { if(guard(null, "photo")) begin("photo"); });
+$("photo").addEventListener("click", e => guard(e, "photo"));
 $("album").addEventListener("click", e => guard(e, "album"));
 $("photo").addEventListener("change", e => { const f = e.target.files && e.target.files[0]; if(f) onPhoto(f); });
-$("album").addEventListener("change", e => onAlbum(e.target.files));
-$("ovSkip").addEventListener("click", skipBatchPhoto);
+$("album").addEventListener("change", e => { const f = e.target.files && e.target.files[0]; if(f) onPhoto(f); });
 $("manualBtn").addEventListener("click", () => { if(guard(null, "manual")) begin("manual"); });
 $("pendResume").addEventListener("click", () => { $("pendingBox").hidden = true; openEntry(); });
 $("pendDrop").addEventListener("click", () => { $("pendingBox").hidden = true; const k = pendingNext; pendingNext = null; discardDraft(); begin(k); });
 $("pendCancel").addEventListener("click", () => { $("pendingBox").hidden = true; renderDraftBox(); });
 $("draftResume").addEventListener("click", openEntry);
 $("draftDrop").addEventListener("click", () => { discardDraft(); toast("작성 중이던 값을 버렸습니다"); });
-["color","sampleName","note","person"].forEach(id => $(id).addEventListener("input", saveForm));
-$("color").addEventListener("input", () => { markColor(); renderPoints(); });
 $("product").addEventListener("change", onProductChange);
-$("date").addEventListener("change", renderPoints);
-document.querySelectorAll('input[name=side]').forEach(r => r.addEventListener("change", () => { saveForm(); renderPoints(); }));
-document.addEventListener("click", e => { if(e.target.closest("#colorChips .cc")) renderPoints(); });
+["color","note","person"].forEach(id => $(id).addEventListener("input", saveForm));
+$("color").addEventListener("input", markColor);
+document.querySelectorAll('input[name=side]').forEach(r => r.addEventListener("change", saveForm));
+$("pmBtn").addEventListener("click", openPm);
+$("pmAdd").addEventListener("click", () => { pmEdit.push({ name: "", points: 10, side: false, lsl: 6.8 }); renderPm(); });
+$("pmCancel").addEventListener("click", () => $("pmCard").hidden = true);
+$("pmSave").addEventListener("click", savePm);
 $("filter").addEventListener("change", renderHist);
 $("xlsxBtn").addEventListener("click", downloadXlsx);
 $("shareBtn").addEventListener("click", shareXlsx);
 window.addEventListener("beforeunload", e => { if(hasValues()){ e.preventDefault(); e.returnValue = ""; } });
 
-/* ---------- 판독 준비 상태 · 앱 안 브라우저 안내 ---------- */
-
-const APP_VERSION = "2026-10-17";
-function setOcrStatus(st){
-  const p = $("ocrStat"); p.className = "ocrstat " + st; p.textContent = "";
-  if(st === "loading") p.textContent = "사진 판독 준비 중… (처음 한 번만 약 7MB를 받습니다)";
-  else if(st === "ready") p.textContent = "✓ 사진 판독 준비됨";
-  else if(st === "failed"){
-    p.append("사진 판독을 준비하지 못했습니다. 인터넷 연결(회사 와이파이라면 LTE)을 확인해 주세요. ");
-    const b = el("button", "", "다시 시도"); b.type = "button"; b.addEventListener("click", () => getWorker().catch(() => {}));
-    p.append(b);
-  }
-}
-function inAppBrowser(){
-  const ua = navigator.userAgent || "";
-  if(/KAKAOTALK/i.test(ua)) return "카카오톡";
-  if(/NAVER\(inapp/i.test(ua)) return "네이버 앱";
-  if(/Instagram/i.test(ua)) return "인스타그램";
-  if(/FBAN|FBAV/i.test(ua)) return "페이스북";
-  if(/\bLine\//i.test(ua)) return "라인";
-  if(/\bBAND\//i.test(ua)) return "밴드";
-  return "";
-}
-function openOutside(){
-  const url = location.href, ua = navigator.userAgent || "";
-  if(/KAKAOTALK/i.test(ua)){ location.href = "kakaotalk://web/openExternal?url=" + encodeURIComponent(url); return; }
-  if(/Android/i.test(ua)){ location.href = "intent://" + url.replace(/^https?:\/\//, "") + "#Intent;scheme=https;package=com.android.chrome;end"; return; }
-  toast("오른쪽 아래 메뉴에서 'Safari로 열기'를 눌러 주세요");
-}
-(function(){
-  $("ver").textContent = "앱 버전 " + APP_VERSION;
-  const who = inAppBrowser();
-  if(who){ $("inapp").hidden = false; $("inappWho").textContent = who + " 안의 브라우저"; }
-  $("inappOpen").addEventListener("click", openOutside);
-  $("inappCopy").addEventListener("click", async () => {
-    try{ await navigator.clipboard.writeText(location.href); toast("주소를 복사했습니다. 크롬에 붙여넣어 여세요"); }
-    catch(e){ toast(location.href); }
-  });
-  if(typeof Tesseract === "undefined") setOcrStatus("failed");
-  else setTimeout(() => getWorker().catch(() => {}), 300);   // 앱을 열자마자 판독 엔진을 미리 받아 둠
-})();
-
+products = load(PSTORE, null);
+if(!Array.isArray(products) || !products.length) products = PRODUCTS.map(p => ({ ...p }));
 records = load(STORE, []); if(!Array.isArray(records)) records = [];
-$("autoSave").checked = load("cm_autosave", true) !== false;
 renderProducts(); restoreForm(); formReady = true; onProductChange();
 const d0 = load(DSTORE, null);
-if(d0 && Array.isArray(d0.rows) && d0.rows.length === ORDER.length){
-  current = { rows: d0.rows.map(r => ({ ...r, auto: r.auto || {} })), img: null };
-  if(!hasValues()) current = null;
+if(d0 && Array.isArray(d0.values) && d0.values.some(v => v !== null) && products.some(p => p.name === d0.product)){
+  draft = { product: d0.product, values: d0.values, img: null };
 }
 records.forEach(r => { if(r.sync === "sending") r.sync = "pending"; if(SHEET_URL && (!r.sync || r.sync === "off")) r.sync = "pending"; });
 renderColorHints(); renderHist(); renderDraftBox();
@@ -1495,6 +819,7 @@ if(SHEET_URL){ resendAll(); window.addEventListener("online", resendAll); }
 </script>
 </body>
 </html>
+
 
 
 
