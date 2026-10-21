@@ -1,0 +1,24 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>모의 주문 확인</title>
+<link rel="stylesheet" href="common.css"><script src="common.js"></script></head><body>
+<div class="banner">테스트용 모의 예매 사이트 — 주문 확인 (결제 버튼은 모의 결제 기록만 남깁니다)</div>
+<section id="summary-page"><h2>주문 내역 확인</h2>
+<table>
+<tr><th>공연</th><td id="sum-title">뮤지컬 〈테스트 오페라〉 - 모의 공연</td></tr>
+<tr><th>날짜</th><td id="sum-date"></td></tr>
+<tr><th>회차</th><td id="sum-round"></td></tr>
+<tr><th>좌석</th><td id="sum-seats"></td></tr>
+<tr><th>금액</th><td id="sum-price"></td></tr>
+</table>
+<button id="pay-btn">결제하기</button></section>
+<script>
+const seats = MOCK.get('seats') || [];
+document.getElementById('sum-date').textContent = MOCK.get('date');
+document.getElementById('sum-round').textContent = MOCK.get('roundLabel');
+document.getElementById('sum-seats').textContent = seats.map(s => s.grade + ' ' + s.label).join(', ');
+document.getElementById('sum-price').textContent =
+  seats.reduce((a, s) => a + MOCK.PRICES[s.grade], 0).toLocaleString('ko-KR') + '원';
+document.getElementById('pay-btn').addEventListener('click', () => {
+  localStorage.setItem('mock.paid', '1');
+  document.body.innerHTML = '<h1 id="paid">모의 결제 완료 (테스트)</h1>';
+});
+</script></body></html>

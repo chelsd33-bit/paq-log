@@ -1,0 +1,15 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>모의 예매자 정보</title>
+<link rel="stylesheet" href="common.css"><script src="common.js"></script></head><body>
+<div class="banner">테스트용 모의 예매 사이트 — 예매자 정보 (입력값은 저장/전송되지 않습니다)</div>
+<section id="booker-page"><h2>예매자 정보</h2>
+<p><label>이름 <input id="booker-name"></label></p>
+<p><label>휴대전화 <input id="booker-phone"></label></p>
+<p><label>이메일 <input id="booker-email"></label></p>
+<button id="booker-next">다음 단계</button></section>
+<script>
+document.getElementById('booker-next').addEventListener('click', () => {
+  for (const id of ['booker-name','booker-phone','booker-email'])
+    if (!document.getElementById(id).value.trim()) { alert('모든 항목을 입력하세요'); return; }
+  location.href = 'summary.html';
+});
+</script></body></html>

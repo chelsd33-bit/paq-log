@@ -1,0 +1,11 @@
+body{font-family:sans-serif;max-width:900px;margin:20px auto;padding:0 16px;background:#fafafa;color:#222}
+.banner{background:#fff3cd;border:1px solid #e0c060;padding:8px 12px;margin-bottom:16px;font-size:14px}
+button{padding:6px 10px;margin:3px;cursor:pointer}
+button.selected{background:#1f5f74;color:#fff}
+button[aria-disabled="true"],button:disabled{opacity:.4;cursor:not-allowed}
+#seat-map{display:grid;grid-template-columns:repeat(10,44px);gap:4px;margin:12px 0}
+.seat{width:44px;height:30px;margin:0;font-size:11px;padding:0}
+.seat.sold{background:#ccc;color:#888}
+.seat.available.VIP{background:#f6d6e8}.seat.available.R{background:#d6e6f6}.seat.available.S{background:#e2f2d6}
+.seat.selected{background:#1f5f74;color:#fff}
+#queue-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);color:#fff;font-size:24px;display:flex;align-items:center;justify-content:center}

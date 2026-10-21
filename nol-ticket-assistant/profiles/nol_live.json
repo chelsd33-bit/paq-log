@@ -1,0 +1,44 @@
+{
+  "name": "nol_live",
+  "verified": false,
+  "allow_auto_click": false,
+  "allow_auto_seat_select": false,
+  "allow_auto_fill": false,
+  "notes": "실제 NOL 티켓 페이지의 구조는 아직 확인되지 않았다. 모든 선택자가 null 이므로 프로그램은 페이지를 연 뒤 '선택자 미확인'으로 안전 중단하고, 이후 과정은 사용자가 브라우저에서 직접 진행한다. 값을 채우려면 README 의 '실사이트 프로필 작성' 절차를 따르고, 사이트 이용약관이 자동화를 허용하는지 먼저 확인할 것.",
+  "pages": {
+    "show": {
+      "identify": null,
+      "title": null,
+      "date_items": null,
+      "date_attr": null,
+      "selected_date": null,
+      "round_items": null,
+      "round_attr": null,
+      "selected_round": null,
+      "next_button": null
+    },
+    "seat": {
+      "identify": null,
+      "available_seats": null,
+      "selected_seats": null,
+      "soldout_marker": null,
+      "seat_attrs": {"id": null, "grade": null, "row": null, "col": null},
+      "next_button": null
+    },
+    "booker": {
+      "identify": null,
+      "fields": {"name": null, "phone": null, "email": null},
+      "next_button": null
+    },
+    "summary": {
+      "identify": null,
+      "title": null,
+      "date": null,
+      "round": null,
+      "seats": null,
+      "price": null
+    },
+    "session_expired": {"identify": null}
+  },
+  "blockers": []
+}

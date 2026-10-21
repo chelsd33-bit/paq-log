@@ -1,0 +1,45 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>모의 좌석 선택</title>
+<link rel="stylesheet" href="common.css"><script src="common.js"></script></head><body>
+<div class="banner">테스트용 모의 예매 사이트 — 좌석 선택</div>
+<div id="root"></div>
+<script>
+const sc = MOCK.scenario();
+const root = document.getElementById('root');
+function grade(row){ return row <= 2 ? 'VIP' : row <= 5 ? 'R' : 'S'; }
+function sold(row, col){ return (row * 7 + col * 3) % 4 === 0 || (row === 1 && col <= 4); }
+function render(){
+  if (sc === 'expired') { root.innerHTML = '<div id="session-expired"><h2>세션이 만료되었습니다</h2><p>다시 로그인해 주세요.</p></div>'; return; }
+  root.innerHTML = '<section id="seat-page"><h2>좌석 선택</h2><div id="seat-map"></div>' +
+    '<p>선택 좌석: <span id="picked">없음</span></p><button id="seat-next">좌석선택완료</button></section>';
+  const map = document.getElementById('seat-map');
+  if (sc === 'soldout') { map.insertAdjacentHTML('afterend', '<p id="soldout-marker">전석 매진</p>'); }
+  for (let row = 1; row <= 8; row++) for (let col = 1; col <= 10; col++) {
+    const b = document.createElement('button');
+    const isSold = sc === 'soldout' || sc === 'noseats' || sold(row, col);
+    b.className = 'seat ' + grade(row) + (isSold ? ' sold' : ' available');
+    b.textContent = row + '-' + col;
+    if (!isSold) {
+      b.dataset.seatId = 'S' + row + '-' + col; b.dataset.grade = grade(row);
+      if (sc !== 'changed') { b.dataset.row = row; b.dataset.col = col; }   // 'changed': 구조 변경 시뮬레이션
+      b.addEventListener('click', () => {
+        const picked = document.querySelectorAll('.seat.selected').length;
+        if (b.classList.contains('selected')) { b.classList.replace('selected', 'available'); }
+        else if (picked < 4) { b.classList.replace('available', 'selected'); }
+        document.getElementById('picked').textContent =
+          [...document.querySelectorAll('.seat.selected')].map(x => x.dataset.seatId).join(', ') || '없음';
+      });
+    } else { b.disabled = true; }
+    map.appendChild(b);
+  }
+  document.getElementById('seat-next').addEventListener('click', () => {
+    const sel = [...document.querySelectorAll('.seat.selected')];
+    if (!sel.length) { alert('좌석을 선택하세요'); return; }
+    MOCK.set('seats', sel.map(x => ({id: x.dataset.seatId, grade: x.dataset.grade, label: x.textContent})));
+    location.href = 'booker.html';
+  });
+}
+if (sc === 'queue') {
+  root.innerHTML = '<div id="queue-overlay">접속 대기 중입니다 (모의 대기열)</div>';
+  setTimeout(render, 1500);
+} else { render(); }
+</script></body></html>
