@@ -1,0 +1,44 @@
+{
+  "name": "mock_site",
+  "verified": true,
+  "allow_auto_click": true,
+  "allow_auto_seat_select": true,
+  "allow_auto_fill": true,
+  "notes": "mock_site/ 의 테스트 페이지 전용 선택자. 모두 mock_site HTML 에 실제로 존재하는 요소다.",
+  "pages": {
+    "show": {
+      "identify": "#show-page",
+      "title": "#show-title",
+      "date_items": ".date-item",
+      "date_attr": "data-date",
+      "selected_date": ".date-item.selected",
+      "round_items": ".round-item",
+      "round_attr": "data-round",
+      "selected_round": ".round-item.selected",
+      "next_button": "#book-btn"
+    },
+    "seat": {
+      "identify": "#seat-page",
+      "available_seats": ".seat.available",
+      "selected_seats": ".seat.selected",
+      "soldout_marker": "#soldout-marker",
+      "seat_attrs": {"id": "data-seat-id", "grade": "data-grade", "row": "data-row", "col": "data-col"},
+      "next_button": "#seat-next"
+    },
+    "booker": {
+      "identify": "#booker-page",
+      "fields": {"name": "#booker-name", "phone": "#booker-phone", "email": "#booker-email"},
+      "next_button": "#booker-next"
+    },
+    "summary": {
+      "identify": "#summary-page",
+      "title": "#sum-title",
+      "date": "#sum-date",
+      "round": "#sum-round",
+      "seats": "#sum-seats",
+      "price": "#sum-price"
+    },
+    "session_expired": {"identify": "#session-expired"}
+  },
+  "blockers": ["#queue-overlay"]
+}

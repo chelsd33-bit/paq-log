@@ -1,0 +1,46 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>모의 공연 상세</title>
+<link rel="stylesheet" href="common.css"><script src="common.js"></script></head><body>
+<div class="banner">테스트용 모의 예매 사이트입니다. 실제 예매/결제는 발생하지 않습니다.</div>
+<main id="show-page">
+  <h1 id="show-title">뮤지컬 〈테스트 오페라〉 - 모의 공연</h1>
+  <h3>관람일</h3>
+  <div id="dates">
+    <button class="date-item" data-date="2026-11-14" aria-disabled="true">11/14 (토) 매진</button>
+    <button class="date-item" data-date="2026-11-15">11/15 (일)</button>
+    <button class="date-item" data-date="2026-11-16">11/16 (월)</button>
+  </div>
+  <h3>회차</h3>
+  <div id="rounds"><p>날짜를 먼저 선택하세요.</p></div>
+  <button id="book-btn" disabled>예매하기</button>
+</main>
+<script>
+const params = new URLSearchParams(location.search);
+localStorage.clear();
+localStorage.setItem('mock.scenario', params.get('scenario') || 'normal');
+let date = null, round = null;
+const ROUNDS = {'2026-11-15': [['1','1회 14:00'],['2','2회 19:00']], '2026-11-16': [['1','1회 19:30']]};
+function refresh(){ document.getElementById('book-btn').disabled = !(date && round); }
+document.querySelectorAll('.date-item').forEach(b => b.addEventListener('click', () => {
+  if (b.getAttribute('aria-disabled') === 'true') return;
+  document.querySelectorAll('.date-item').forEach(x => x.classList.remove('selected'));
+  b.classList.add('selected'); date = b.dataset.date; round = null;
+  const box = document.getElementById('rounds'); box.innerHTML = '';
+  // 회차 목록은 약간 늦게 그려진다 (실제 사이트의 비동기 로딩 흉내)
+  setTimeout(() => {
+    for (const [v, label] of ROUNDS[date]) {
+      const r = document.createElement('button'); r.className = 'round-item'; r.dataset.round = v; r.textContent = label;
+      r.addEventListener('click', () => {
+        document.querySelectorAll('.round-item').forEach(x => x.classList.remove('selected'));
+        r.classList.add('selected'); round = v; refresh();
+      });
+      box.appendChild(r);
+    }
+    refresh();
+  }, 300);
+}));
+document.getElementById('book-btn').addEventListener('click', () => {
+  MOCK.set('date', date); MOCK.set('round', round);
+  MOCK.set('roundLabel', document.querySelector('.round-item.selected').textContent);
+  window.open('seat.html', 'booking', 'width=1000,height=800');  // 실제 예매처럼 팝업 창으로 진행
+});
+</script></body></html>
